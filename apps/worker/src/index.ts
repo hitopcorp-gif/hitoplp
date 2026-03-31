@@ -56,11 +56,9 @@ img{display:block;width:100%;height:100%;object-fit:cover}
 
 /* NAV */
 .nav{padding:18px clamp(24px,5vw,80px);display:flex;justify-content:space-between;align-items:center}
-.nav-brand{display:flex;align-items:center;gap:12px;text-decoration:none}
-.nav-shield{width:40px;height:40px;object-fit:contain}
-.nav-text{display:flex;flex-direction:column;gap:2px}
-.nav-logo{font-family:'Satoshi',sans-serif;font-size:12px;letter-spacing:0.18em;color:#fff;text-transform:uppercase;line-height:1}
-.nav-logo-ja{font-family:'Noto Sans JP',sans-serif;font-size:7px;letter-spacing:0.2em;color:rgba(255,255,255,0.3);line-height:1}
+.nav-brand{display:flex;flex-direction:column;align-items:center;gap:6px;text-decoration:none}
+.nav-shield{width:44px;height:44px;object-fit:contain}
+.nav-logo{font-family:'Satoshi',sans-serif;font-size:9px;font-weight:400;letter-spacing:0.28em;color:rgba(255,255,255,0.7);text-transform:uppercase;line-height:1}
 .nav-tag{font-family:'Noto Sans JP',sans-serif;font-size:8px;letter-spacing:0.45em;color:rgba(255,255,255,0.25);text-transform:uppercase}
 
 /* HERO */
@@ -101,10 +99,7 @@ footer p{font-family:'Satoshi',sans-serif;font-weight:300;font-size:10px;color:r
 <nav class="nav">
   <a href="https://hi-top.net" class="nav-brand">
     <img src="https://hitoplp-api.hitopcorp.workers.dev/api/image/assets/logo.png" class="nav-shield" alt="HI-TOP">
-    <div class="nav-text">
-      <span class="nav-logo en">HI-TOP JOURNAL</span>
-      <span class="nav-logo-ja sans">ハイトップコーポレーション</span>
-    </div>
+    <span class="nav-logo">HI-TOP JOURNAL</span>
   </a>
   <span class="nav-tag sans">Selection</span>
 </nav>

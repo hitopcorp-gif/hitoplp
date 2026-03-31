@@ -166,11 +166,9 @@ a { color: inherit; text-decoration: none; }
   padding: 18px clamp(24px, 5vw, 72px);
   display: flex; justify-content: space-between; align-items: center;
 }
-.nav-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
-.nav-shield { width: 40px; height: 40px; object-fit: contain; }
-.nav-text { display: flex; flex-direction: column; gap: 2px; }
-.nav-logo { font-family: 'Satoshi', sans-serif; font-weight: 700; font-size: 12px; letter-spacing: 0.18em; color: #fff; text-transform: uppercase; line-height: 1; mix-blend-mode: difference; }
-.nav-logo-ja { font-family: 'Noto Sans JP', sans-serif; font-size: 7px; letter-spacing: 0.2em; color: rgba(255,255,255,0.35); line-height: 1; mix-blend-mode: difference; }
+.nav-brand { display: flex; flex-direction: column; align-items: center; gap: 6px; text-decoration: none; }
+.nav-shield { width: 44px; height: 44px; object-fit: contain; }
+.nav-logo { font-family: 'Satoshi', sans-serif; font-weight: 400; font-size: 9px; letter-spacing: 0.28em; color: rgba(255,255,255,0.7); text-transform: uppercase; line-height: 1; mix-blend-mode: difference; }
 .nav-tag { font-family: 'Noto Sans JP', sans-serif; font-size: 8px; letter-spacing: 0.45em; color: rgba(255,255,255,0.3); text-transform: uppercase; mix-blend-mode: difference; }
 
 /* ── HERO ── */
@@ -367,10 +365,7 @@ footer { border-top: 1px solid rgba(255,255,255,0.05); padding: 56px 0; }
 <nav class="nav">
   <a href="https://hi-top.net" class="nav-brand">
     <img src="${LOGO_URL}" class="nav-shield" alt="HI-TOP">
-    <div class="nav-text">
-      <span class="nav-logo en">HI-TOP JOURNAL</span>
-      <span class="nav-logo-ja sans">ハイトップコーポレーション</span>
-    </div>
+    <span class="nav-logo">HI-TOP JOURNAL</span>
   </a>
   <span class="nav-tag sans">Selection</span>
 </nav>
