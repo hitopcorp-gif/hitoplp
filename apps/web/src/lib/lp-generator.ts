@@ -344,10 +344,10 @@ footer { border-top: 1px solid rgba(255,255,255,0.05); padding: 56px 0; }
 <div id="sprog"></div>
 
 <nav class="nav">
-  <div class="nav-brand">
+  <a href="https://hi-top.net" class="nav-brand" style="text-decoration:none;">
     <span class="nav-logo en">HI-TOP</span>
     <span class="nav-logo-ja sans">ハイトップコーポレーション</span>
-  </div>
+  </a>
   <span class="nav-tag sans">Selection</span>
 </nav>
 
@@ -496,13 +496,13 @@ ${content.pullQuote2 ? `<div class="pq">
 <footer>
   <div class="w">
     <div class="ft">
-      <div>
+      <a href="https://hi-top.net" style="text-decoration:none;">
         <p class="ft-logo en">HI-TOP</p>
         <p class="sans" style="font-size:9px;color:var(--text-dim);letter-spacing:0.2em;margin-top:4px;">ハイトップコーポレーション</p>
-      </div>
+      </a>
       <div class="ft-info">
         <p class="sans">HI-TOP Corporation</p>
-        <p class="sans">福岡県北九州市 ｜ hi-top.net</p>
+        <p class="sans">福岡県北九州市 ｜ <a href="https://hi-top.net" style="color:inherit;border-bottom:1px solid rgba(255,255,255,0.15);">hi-top.net</a></p>
       </div>
     </div>
   </div>

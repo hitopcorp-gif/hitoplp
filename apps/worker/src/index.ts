@@ -112,8 +112,8 @@ ${entries.length > 0
   ? `<div class="grid">${cards}</div>`
   : '<p class="empty">現在公開中の車両はありません。</p>'}
 <footer>
-  <p class="en">HI-TOP CORPORATION</p>
-  <p class="sans">福岡県北九州市 ｜ hi-top.net</p>
+  <a href="https://hi-top.net" style="text-decoration:none;"><p class="en">HI-TOP CORPORATION</p></a>
+  <p class="sans">福岡県北九州市 ｜ <a href="https://hi-top.net" style="color:inherit;border-bottom:1px solid rgba(255,255,255,0.15);">hi-top.net</a></p>
 </footer>
 </body>
 </html>`
