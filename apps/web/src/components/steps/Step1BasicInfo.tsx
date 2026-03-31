@@ -61,7 +61,10 @@ export function Step1BasicInfo({ onNext, defaultValues }: Props) {
   })
 
   async function handleScrape() {
-    if (!scrapeUrl.trim()) return
+    if (!scrapeUrl.trim()) {
+      setScrapeError('URLを入力してください')
+      return
+    }
     setScraping(true)
     setScrapeError('')
     try {
@@ -134,7 +137,7 @@ export function Step1BasicInfo({ onNext, defaultValues }: Props) {
           <button
             type="button"
             onClick={handleScrape}
-            disabled={scraping || !scrapeUrl.trim()}
+            disabled={scraping}
             className="shrink-0 text-xs px-4 py-2 border border-brand-gold/40 text-brand-gold hover:border-brand-gold hover:bg-brand-gold/5 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
           >
             {scraping ? '取得中...' : '取得'}
