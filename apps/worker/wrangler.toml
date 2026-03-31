@@ -6,5 +6,9 @@ compatibility_flags = ["nodejs_compat"]
 [vars]
 ALLOWED_ORIGIN = "*"
 
+[[r2_buckets]]
+binding = "IMAGES"
+bucket_name = "hitoplp-images"
+
 # Secrets (set via: wrangler secret put ANTHROPIC_API_KEY)
 # ANTHROPIC_API_KEY

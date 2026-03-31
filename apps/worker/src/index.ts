@@ -5,17 +5,45 @@ import Anthropic from '@anthropic-ai/sdk'
 type Env = {
   ANTHROPIC_API_KEY: string
   ALLOWED_ORIGIN: string
+  IMAGES: R2Bucket
 }
 
 const app = new Hono<{ Bindings: Env }>()
 
 app.use('*', async (c, next) => {
-  const origin = c.env.ALLOWED_ORIGIN || '*'
-  return cors({ origin, allowMethods: ['POST', 'GET', 'OPTIONS'] })(c, next)
+  return cors({ origin: '*', allowMethods: ['POST', 'GET', 'PUT', 'DELETE', 'OPTIONS'] })(c, next)
 })
 
 app.get('/health', (c) => c.json({ ok: true }))
 
+// ── 画像アップロード（直接R2へ）──
+app.put('/api/upload/:key', async (c) => {
+  const key = c.req.param('key')
+  const contentType = c.req.header('content-type') ?? 'image/jpeg'
+  const body = await c.req.arrayBuffer()
+
+  await c.env.IMAGES.put(key, body, {
+    httpMetadata: { contentType },
+  })
+
+  const url = `https://hitoplp-images.${c.env.ALLOWED_ORIGIN ? '' : ''}pub.r2.dev/${key}`
+  return c.json({ key, url: `/api/image/${key}` })
+})
+
+// ── 画像取得 ──
+app.get('/api/image/:key', async (c) => {
+  const key = c.req.param('key')
+  const obj = await c.env.IMAGES.get(key)
+  if (!obj) return c.notFound()
+
+  const headers = new Headers()
+  obj.writeHttpMetadata(headers)
+  headers.set('cache-control', 'public, max-age=31536000')
+
+  return new Response(obj.body, { headers })
+})
+
+// ── AI記事生成 ──
 app.post('/api/generate', async (c) => {
   const { prompt } = await c.req.json<{ prompt: string }>()
   if (!prompt) return c.json({ error: 'prompt required' }, 400)
@@ -37,10 +65,7 @@ HI-TOPの哲学は「My Passion is One Code」。
 - 読者に語りかけない。「あなた」は使わない
 - 車に乗った時の体験を五感で描写する（視覚、音、振動、匂い、温度）
 - スペックの数字は文中に自然に溶け込ませる
-  ×「4.0L V8ツインターボ」 ○「4リッターのV8が目を覚ます」
 - 具体的な描写を入れる
-  ○「3時間目に、このシートを選んだ理由がわかる」
-  ○「燃料計の針は、まだほとんど動いていない」
 
 【禁止ワード】
 圧倒的、至高、官能的、ラグジュアリーな、プレミアムな、
@@ -53,7 +78,7 @@ HI-TOPの哲学は「My Passion is One Code」。
 
   try {
     const message = await client.messages.create({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-opus-4-5',
       max_tokens: 4096,
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: prompt }],

@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
-import { storage } from '@/lib/firebase'
+import { uploadImageToR2 } from '@/lib/upload'
 import { Button } from '@/components/ui/button'
 import type { CarPhoto, PhotoTag, Situation } from '@/types'
 import { PHOTO_ADVICE } from '@/types'
@@ -46,13 +45,11 @@ export function Step3Photos({ situation, onNext, defaultPhotos = [] }: Props) {
     for (let i = 0; i < acceptedFiles.length; i++) {
       const file = acceptedFiles[i]
       const id = `${Date.now()}-${i}`
-      const storageRef = ref(storage, `vehicles/${id}-${file.name}`)
-      await uploadBytes(storageRef, file)
-      const url = await getDownloadURL(storageRef)
+      const { key, url } = await uploadImageToR2(file)
       newPhotos.push({
         id,
         url,
-        storageRef: storageRef.fullPath,
+        storageRef: key,
         tag: guessTag(photos.length + i),
         order: photos.length + i,
       })
