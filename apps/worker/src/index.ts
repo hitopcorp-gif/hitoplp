@@ -44,31 +44,30 @@ app.get('/', async (c) => {
 <title>HI-TOP CORPORATION — Selection</title>
 <meta name="description" content="HI-TOP CORPORATIONが選び抜いた一台。福岡・北九州。">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=Noto+Serif+JP:wght@200;300&family=Noto+Sans+JP:wght@300;400&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@700,400,300&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@400;500&family=Cormorant+Garamond:ital,wght@1,300&family=Noto+Sans+JP:wght@300;400&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
-body{background:#0A0A0A;color:#F5F5F0;font-family:'Noto Serif JP',serif;font-weight:300;min-height:100vh}
+body{background:#0A0A0A;color:#F5F5F0;font-family:'Shippori Mincho B1',serif;font-weight:300;min-height:100vh}
 a{text-decoration:none;color:inherit}
 img{display:block;width:100%;height:100%;object-fit:cover}
-.en{font-family:'Cormorant Garamond',serif}
 .sans{font-family:'Noto Sans JP',sans-serif}
 
 /* NAV */
-.nav{padding:32px clamp(24px,5vw,80px);display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.05)}
-.nav-brand{display:flex;flex-direction:column;gap:3px}
+.nav{padding:18px clamp(24px,5vw,80px);display:flex;justify-content:space-between;align-items:center}
 .nav-brand{display:flex;align-items:center;gap:12px;text-decoration:none}
-.nav-shield{width:40px;height:40px;object-fit:contain;filter:brightness(0) invert(1);opacity:0.85}
+.nav-shield{width:40px;height:40px;object-fit:contain}
 .nav-text{display:flex;flex-direction:column;gap:2px}
-.nav-logo{font-family:'Cormorant Garamond',serif;font-size:16px;letter-spacing:0.35em;color:#fff;text-transform:uppercase;line-height:1}
-.nav-logo-ja{font-family:'Noto Sans JP',sans-serif;font-size:8px;letter-spacing:0.2em;color:rgba(255,255,255,0.3);line-height:1}
+.nav-logo{font-family:'Satoshi',sans-serif;font-size:12px;letter-spacing:0.18em;color:#fff;text-transform:uppercase;line-height:1}
+.nav-logo-ja{font-family:'Noto Sans JP',sans-serif;font-size:7px;letter-spacing:0.2em;color:rgba(255,255,255,0.3);line-height:1}
 .nav-tag{font-family:'Noto Sans JP',sans-serif;font-size:8px;letter-spacing:0.45em;color:rgba(255,255,255,0.25);text-transform:uppercase}
 
 /* HERO */
-.hero{padding:clamp(60px,10vh,120px) clamp(24px,5vw,80px) clamp(40px,6vh,80px)}
-.hero-label{font-family:'Noto Sans JP',sans-serif;font-size:9px;letter-spacing:0.5em;color:#C4A265;margin-bottom:20px}
-.hero-title{font-family:'Cormorant Garamond',serif;font-weight:300;font-size:clamp(40px,6vw,80px);line-height:1;color:#fff;margin-bottom:16px}
-.hero-sub{font-family:'Noto Serif JP',serif;font-weight:200;font-size:clamp(13px,1.1vw,15px);color:rgba(245,245,240,0.35);letter-spacing:0.08em}
+.hero{padding:clamp(80px,12vh,140px) clamp(24px,5vw,80px) clamp(40px,6vh,80px)}
+.hero-label{font-family:'Noto Sans JP',sans-serif;font-size:8px;letter-spacing:0.65em;color:#C4A265;margin-bottom:24px}
+.hero-title{font-family:'Satoshi',sans-serif;font-weight:700;letter-spacing:-0.02em;font-size:clamp(36px,5.5vw,72px);line-height:1.0;color:#fff;margin-bottom:20px}
+.hero-sub{font-family:'Shippori Mincho B1',serif;font-weight:200;font-size:clamp(13px,1.1vw,15px);color:rgba(245,245,240,0.35);letter-spacing:0.08em}
 
 /* GRID */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(clamp(280px,30vw,420px),1fr));gap:clamp(16px,2.5vw,40px);padding:0 clamp(24px,5vw,80px) 120px}
@@ -83,14 +82,14 @@ img{display:block;width:100%;height:100%;object-fit:cover}
 .card-img-placeholder{width:100%;height:100%;background:#111}
 .card-img-grad{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 50%,rgba(0,0,0,0.4))}
 .card-body{padding:20px 0 0}
-.card-year{font-size:9px;letter-spacing:0.4em;color:#C4A265;margin-bottom:8px}
-.card-name{font-weight:300;font-size:clamp(18px,2vw,24px);line-height:1.15;color:#F5F5F0;margin-bottom:6px}
-.card-name-ja{font-family:'Noto Serif JP',serif;font-weight:200;font-size:11px;color:rgba(245,245,240,0.3);letter-spacing:0.2em;margin-bottom:10px}
-.card-price{font-weight:300;font-size:clamp(16px,1.8vw,22px);color:rgba(245,245,240,0.6)}
+.card-year{font-family:'Noto Sans JP',sans-serif;font-size:9px;letter-spacing:0.4em;color:#C4A265;margin-bottom:8px}
+.card-name{font-family:'Satoshi',sans-serif;font-weight:700;letter-spacing:-0.02em;font-size:clamp(18px,2vw,26px);line-height:1.1;color:#F5F5F0;margin-bottom:6px}
+.card-name-ja{font-family:'Shippori Mincho B1',serif;font-weight:200;font-size:11px;color:rgba(245,245,240,0.3);letter-spacing:0.2em;margin-bottom:10px}
+.card-price{font-family:'Satoshi',sans-serif;font-weight:300;font-size:clamp(14px,1.5vw,18px);color:rgba(245,245,240,0.55)}
 
 /* FOOTER */
 footer{border-top:1px solid rgba(255,255,255,0.05);padding:40px clamp(24px,5vw,80px);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px}
-footer p{font-family:'Noto Sans JP',sans-serif;font-size:10px;color:rgba(255,255,255,0.2);letter-spacing:0.15em}
+footer p{font-family:'Satoshi',sans-serif;font-weight:300;font-size:10px;color:rgba(255,255,255,0.2);letter-spacing:0.15em}
 
 @media(max-width:640px){
   .grid{grid-template-columns:1fr}

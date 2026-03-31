@@ -130,13 +130,16 @@ export function VehicleDetailPage() {
   }
 
   async function handleMarkSold() {
-    if (!id) return
+    if (!id || !vehicle) return
     await updateDoc(doc(db, 'vehicles', id), {
       status: 'sold',
       soldAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     })
     setVehicle((prev) => prev ? { ...prev, status: 'sold' } : prev)
+    // Remove from public index
+    const API_BASE = import.meta.env.VITE_API_BASE_URL
+    try { await updateLpIndex(API_BASE, vehicle.slug, null) } catch { /* best effort */ }
   }
 
   async function handleRegenerate() {
