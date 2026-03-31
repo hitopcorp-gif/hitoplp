@@ -90,14 +90,14 @@ a { color: inherit; text-decoration: none; }
 /* ── HERO ── */
 .hero { position: relative; height: 100vh; min-height: 600px; overflow: hidden; }
 .hero-bg { position: absolute; inset: 0; }
-.hero-bg img { width: 100%; height: 100%; filter: brightness(0.65); transition: transform 8s ease; }
+.hero-bg img { width: 100%; height: 100%; object-fit: cover; object-position: center 65%; filter: brightness(0.65); transition: transform 8s ease; }
 .hero:hover .hero-bg img { transform: scale(1.03); }
 .hero-overlay { position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.6) 100%); }
-.hero-content { position: relative; z-index: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; padding: clamp(40px, 8vh, 100px) clamp(24px, 6vw, 100px); }
-.hero-label { font-family: 'Noto Sans JP', sans-serif; font-size: 11px; letter-spacing: 0.3em; color: var(--accent); text-transform: uppercase; margin-bottom: 20px; }
-.hero-title { font-family: 'Noto Serif JP', serif; font-weight: 200; font-size: clamp(22px, 3.2vw, 48px); line-height: 1.3; color: var(--text); max-width: 900px; letter-spacing: 0.05em; }
-.hero-subtitle { font-family: 'Noto Serif JP', serif; font-weight: 200; font-size: clamp(14px, 1.8vw, 18px); color: var(--text-dim); margin-top: 16px; }
-.hero-copy { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: clamp(18px, 2.5vw, 26px); color: var(--accent); margin-top: 12px; }
+.hero-content { position: relative; z-index: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; padding: clamp(40px, 8vh, 80px) clamp(24px, 5vw, 80px); }
+.hero-label { font-family: 'Noto Sans JP', sans-serif; font-size: 10px; letter-spacing: 0.4em; color: var(--accent); text-transform: uppercase; margin-bottom: 16px; }
+.hero-title { font-family: 'Noto Serif JP', serif; font-weight: 200; font-size: clamp(16px, 2vw, 32px); line-height: 1.5; color: var(--text); max-width: 80%; letter-spacing: 0.08em; word-break: keep-all; overflow-wrap: break-word; }
+.hero-subtitle { font-family: 'Noto Serif JP', serif; font-weight: 200; font-size: clamp(12px, 1.3vw, 16px); color: var(--text-dim); margin-top: 14px; letter-spacing: 0.1em; }
+.hero-copy { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: clamp(16px, 2vw, 24px); color: var(--accent); margin-top: 10px; letter-spacing: 0.05em; }
 
 /* ── SECTIONS ── */
 .section { padding: clamp(80px, 10vh, 120px) 0; }
@@ -112,7 +112,7 @@ a { color: inherit; text-decoration: none; }
 .two-col.reverse > * { direction: ltr; }
 
 .photo-block { overflow: hidden; }
-.photo-block img { width: 100%; height: 460px; transition: transform 0.7s ease; }
+.photo-block img { width: 100%; height: 460px; object-fit: cover; object-position: center 60%; transition: transform 0.7s ease; }
 .photo-block:hover img { transform: scale(1.04); }
 
 .text-block { padding: clamp(0px, 2vw, 40px); }
@@ -121,7 +121,7 @@ a { color: inherit; text-decoration: none; }
 
 /* ── FULL BLEED ── */
 .full-bleed { height: 75vh; min-height: 400px; overflow: hidden; position: relative; }
-.full-bleed img { width: 100%; height: 100%; filter: brightness(0.8); transition: transform 8s ease; }
+.full-bleed img { width: 100%; height: 100%; object-fit: cover; object-position: center 60%; filter: brightness(0.8); transition: transform 8s ease; }
 .full-bleed:hover img { transform: scale(1.02); }
 
 /* ── PULL QUOTE ── */
