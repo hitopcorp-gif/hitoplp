@@ -22,12 +22,12 @@ function normalizeDetail(d: DetailItem): { caption: string; description: string 
   return d
 }
 
-function splitIntoLines(name: string): string[] {
+function splitIntoLines(name: string, threshold = 25): string[] {
   const words = name.split(' ')
   const lines: string[] = []
   let current = ''
   for (const w of words) {
-    if (current.length + w.length > 25 && current.length > 0) {
+    if (current.length + w.length > threshold && current.length > 0) {
       lines.push(current.trim())
       current = w
     } else {
@@ -36,6 +36,21 @@ function splitIntoLines(name: string): string[] {
   }
   if (current) lines.push(current.trim())
   return lines
+}
+
+// Split vehicle name into display lines: brand/model lines (bold) + grade line (thin)
+function splitVehicleName(name: string): string[] {
+  const words = name.split(' ')
+  // Detect grade start: word at index >= 2 that looks like a grade code (e.g. G65, 500h, AMG at end)
+  const isGradeWord = (w: string) => /^[A-Z]\d/.test(w) || /^\d/.test(w)
+  let gradeIdx = -1
+  for (let i = 2; i < words.length; i++) {
+    if (isGradeWord(words[i])) { gradeIdx = i; break }
+  }
+  if (gradeIdx === -1) return splitIntoLines(name)
+  const modelPart = words.slice(0, gradeIdx).join(' ')
+  const gradePart = words.slice(gradeIdx).join(' ')
+  return [...splitIntoLines(modelPart, 14), gradePart]
 }
 
 export function generateLpHtml(vehicle: Vehicle, content: GeneratedContent, preview = false): string {
@@ -68,7 +83,7 @@ export function generateLpHtml(vehicle: Vehicle, content: GeneratedContent, prev
   ]
 
   const priceDisplay = basicInfo.isAsk ? 'ASK' : basicInfo.price
-  const titleLines = splitIntoLines(basicInfo.name)
+  const titleLines = splitVehicleName(basicInfo.name)
 
   const specs = [
     ['年式', `${basicInfo.year}年`],
@@ -95,7 +110,8 @@ export function generateLpHtml(vehicle: Vehicle, content: GeneratedContent, prev
 <meta property="og:description" content="${content.subtitle}">
 ${heroUrl ? `<meta property="og:image" content="${heroUrl}">` : ''}
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Playfair+Display:ital,wght@0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;1,300;1,400&family=Noto+Serif+JP:wght@200;300;400&family=Noto+Sans+JP:wght@300;400&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@900,800,700,400,300&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@400;500;600&family=Playfair+Display:ital,wght@0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;1,300;1,400&family=Noto+Sans+JP:wght@300;400&display=swap" rel="stylesheet">
 <style>
 /* ── RESET ── */
 :root {
@@ -108,7 +124,7 @@ html { scroll-behavior: smooth; }
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: 'Noto Serif JP', serif;
+  font-family: 'Shippori Mincho B1', serif;
   font-weight: 300;
   line-height: 1.9;
   overflow-x: hidden;
@@ -153,7 +169,7 @@ a { color: inherit; text-decoration: none; }
 .nav-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
 .nav-shield { width: 40px; height: 40px; object-fit: contain; }
 .nav-text { display: flex; flex-direction: column; gap: 2px; }
-.nav-logo { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 12px; letter-spacing: 0.18em; color: #fff; text-transform: uppercase; line-height: 1; mix-blend-mode: difference; }
+.nav-logo { font-family: 'Satoshi', sans-serif; font-weight: 700; font-size: 12px; letter-spacing: 0.18em; color: #fff; text-transform: uppercase; line-height: 1; mix-blend-mode: difference; }
 .nav-logo-ja { font-family: 'Noto Sans JP', sans-serif; font-size: 7px; letter-spacing: 0.2em; color: rgba(255,255,255,0.35); line-height: 1; mix-blend-mode: difference; }
 .nav-tag { font-family: 'Noto Sans JP', sans-serif; font-size: 8px; letter-spacing: 0.45em; color: rgba(255,255,255,0.3); text-transform: uppercase; mix-blend-mode: difference; }
 
@@ -175,9 +191,9 @@ a { color: inherit; text-decoration: none; }
   transition: opacity 0.7s var(--ease) 0.1s, transform 0.7s var(--ease) 0.1s;
 }
 .hero-name {
-  font-family: 'Syne', sans-serif; font-weight: 800;
+  font-family: 'Satoshi', sans-serif; font-weight: 900;
   font-size: clamp(40px, 8vw, 108px);
-  line-height: 0.92; letter-spacing: -0.01em;
+  line-height: 0.95; letter-spacing: -0.02em;
   color: #fff; overflow: hidden;
 }
 .hero-name-line {
@@ -185,11 +201,11 @@ a { color: inherit; text-decoration: none; }
   transform: ${preview ? 'none' : 'translateY(105%)'};
   transition: transform 1.0s var(--ease);
 }
-.hero-name-line:nth-child(n+2) { font-family: 'Cormorant Garamond', serif; font-style: italic; font-weight: 300; font-size: 0.46em; letter-spacing: 0.01em; color: rgba(255,255,255,0.72); }
-.hero-name-line:nth-child(2) { transition-delay: 0.1s; padding-left: clamp(6px, 1.5vw, 24px); }
+.hero-name-line:not(:first-child):last-child { font-family: 'Satoshi', sans-serif; font-weight: 300; font-style: normal; font-size: 0.46em; letter-spacing: 0.01em; color: rgba(255,255,255,0.65); }
+.hero-name-line:nth-child(2) { transition-delay: 0.1s; }
 .hero-name-line:nth-child(3) { transition-delay: 0.2s; }
 .hero-name-ja {
-  font-family: 'Noto Serif JP', serif; font-weight: 200;
+  font-family: 'Shippori Mincho B1', serif; font-weight: 200;
   font-size: clamp(10px, 0.9vw, 12px); color: rgba(245,245,240,0.28);
   letter-spacing: 0.3em; margin-top: 26px;
   opacity: ${preview ? '1' : '0'}; transform: ${preview ? 'none' : 'translateY(10px)'};
@@ -201,7 +217,7 @@ a { color: inherit; text-decoration: none; }
   flex-wrap: wrap; gap: 20px;
 }
 .hero-sub {
-  font-family: 'Noto Serif JP', serif; font-weight: 200;
+  font-family: 'Shippori Mincho B1', serif; font-weight: 200;
   font-size: clamp(11px, 0.9vw, 13px); color: rgba(245,245,240,0.38);
   letter-spacing: 0.08em; max-width: 340px;
   opacity: ${preview ? '1' : '0'}; transform: ${preview ? 'none' : 'translateY(16px)'};
@@ -269,7 +285,7 @@ a { color: inherit; text-decoration: none; }
 .di-img img { width: 100%; height: clamp(240px, 33vw, 420px); object-fit: cover; transition: transform 0.9s var(--ease); }
 .di:hover .di-img img { transform: scale(1.06); }
 .di-n { font-family: 'Cormorant Garamond', serif; font-size: 10px; letter-spacing: 0.4em; color: var(--accent); margin: 22px 0 8px; }
-.di-cap { font-family: 'Noto Serif JP', serif; font-weight: 300; font-size: 15px; color: var(--text); margin-bottom: 10px; }
+.di-cap { font-family: 'Shippori Mincho B1', serif; font-weight: 300; font-size: 15px; color: var(--text); margin-bottom: 10px; }
 .di-desc { font-family: 'Noto Sans JP', sans-serif; font-size: 12px; color: var(--text-dim); line-height: 1.9; }
 
 /* ── SPECS ── */
@@ -278,7 +294,7 @@ a { color: inherit; text-decoration: none; }
 .sp-grid { display: grid; grid-template-columns: 1fr 1fr; }
 .sp-row { display: flex; justify-content: space-between; align-items: baseline; padding: 15px 0; border-bottom: 1px solid rgba(255,255,255,0.045); gap: 16px; }
 .sp-k { font-family: 'Noto Sans JP', sans-serif; font-size: 11px; letter-spacing: 0.12em; color: var(--text-dim); flex-shrink: 0; }
-.sp-v { font-family: 'Noto Serif JP', serif; font-size: 14px; color: var(--text); text-align: right; }
+.sp-v { font-family: 'Shippori Mincho B1', serif; font-size: 14px; color: var(--text); text-align: right; }
 .price-blk { margin-top: 52px; padding-top: 40px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; align-items: baseline; gap: 28px; }
 .price-lbl { font-family: 'Noto Sans JP', sans-serif; font-size: 10px; letter-spacing: 0.35em; color: var(--text-dim); text-transform: uppercase; }
 .price-num { font-family: 'Cormorant Garamond', serif; font-weight: 300; font-size: clamp(40px, 5.5vw, 72px); color: var(--text); line-height: 1; }
@@ -286,7 +302,7 @@ a { color: inherit; text-decoration: none; }
 /* ── CTA ── */
 .cta { padding: clamp(100px, 14vh, 160px) 0; text-align: center; }
 .cta-vert { width: 1px; height: 80px; background: linear-gradient(to bottom, transparent, var(--accent)); margin: 0 auto 52px; }
-.cta-copy { font-family: 'Noto Serif JP', serif; font-weight: 200; font-size: clamp(20px, 2.5vw, 30px); color: var(--text); letter-spacing: 0.1em; margin-bottom: 52px; }
+.cta-copy { font-family: 'Shippori Mincho B1', serif; font-weight: 200; font-size: clamp(20px, 2.5vw, 30px); color: var(--text); letter-spacing: 0.1em; margin-bottom: 52px; }
 .cta-btns { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
 .cta-btn { display: inline-flex; align-items: center; gap: 12px; border: 1px solid rgba(255,255,255,0.12); padding: 16px 44px; font-family: 'Noto Sans JP', sans-serif; font-size: 11px; letter-spacing: 0.18em; color: var(--text); transition: border-color 0.3s, color 0.3s, background 0.3s; cursor: none; }
 .cta-btn:hover { border-color: var(--accent); color: var(--accent); }
