@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
+import { doc, getDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import type { Vehicle, GeneratedContent } from '@/types'
 import { Button } from '@/components/ui/button'
 import { LpPreview } from '@/components/LpPreview'
 import { generateContent } from '@/lib/ai'
 import {
-  ChevronLeft, Eye, Globe, RotateCcw, BadgeCheck, Edit, Sparkles, Check
+  ChevronLeft, Eye, Globe, RotateCcw, BadgeCheck, Edit, Sparkles, Check, Trash2
 } from 'lucide-react'
 
 export function VehicleDetailPage() {
@@ -44,6 +44,13 @@ export function VehicleDetailPage() {
     })
     setVehicle((prev) => prev ? { ...prev, status: prev.status === 'published' ? 'draft' : 'published' } : prev)
     setPublishing(false)
+  }
+
+  async function handleDelete() {
+    if (!id) return
+    if (!window.confirm('このLPを削除しますか？この操作は取り消せません。')) return
+    await deleteDoc(doc(db, 'vehicles', id))
+    navigate('/')
   }
 
   async function handleMarkSold() {
@@ -117,6 +124,9 @@ export function VehicleDetailPage() {
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
+          <Button variant="ghost" size="sm" onClick={handleDelete} className="text-white/20 hover:text-red-400 border-white/10">
+            <Trash2 className="w-4 h-4" />
+          </Button>
           {vehicle.status !== 'sold' && (
             <>
               <Button variant="ghost" size="sm" onClick={handleMarkSold} className="text-white/40 hover:text-white border-white/20">
