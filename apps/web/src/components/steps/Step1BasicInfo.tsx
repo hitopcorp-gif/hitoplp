@@ -125,7 +125,7 @@ export function Step1BasicInfo({ onNext, defaultValues }: Props) {
         </p>
         <div className="flex gap-2">
           <Input
-            type="url"
+            type="text"
             placeholder="https://www.carsensor.net/usedcar/..."
             value={scrapeUrl}
             onChange={(e) => setScrapeUrl(e.target.value)}
