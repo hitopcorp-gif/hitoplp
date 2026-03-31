@@ -32,6 +32,7 @@ interface Props {
 export function Step3Photos({ situation, onNext, defaultPhotos = [] }: Props) {
   const [photos, setPhotos] = useState<CarPhoto[]>(defaultPhotos)
   const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState('')
 
   const advice = PHOTO_ADVICE[situation]
 
@@ -41,21 +42,27 @@ export function Step3Photos({ situation, onNext, defaultPhotos = [] }: Props) {
       return
     }
     setUploading(true)
+    setUploadError('')
     const newPhotos: CarPhoto[] = []
-    for (let i = 0; i < acceptedFiles.length; i++) {
-      const file = acceptedFiles[i]
-      const id = `${Date.now()}-${i}`
-      const { key, url } = await uploadImageToR2(file)
-      newPhotos.push({
-        id,
-        url,
-        storageRef: key,
-        tag: guessTag(photos.length + i),
-        order: photos.length + i,
-      })
+    try {
+      for (let i = 0; i < acceptedFiles.length; i++) {
+        const file = acceptedFiles[i]
+        const id = `${Date.now()}-${i}`
+        const { key, url } = await uploadImageToR2(file)
+        newPhotos.push({
+          id,
+          url,
+          storageRef: key,
+          tag: guessTag(photos.length + i),
+          order: photos.length + i,
+        })
+      }
+      setPhotos((prev) => [...prev, ...newPhotos])
+    } catch (e) {
+      setUploadError(e instanceof Error ? e.message : 'アップロードに失敗しました')
+    } finally {
+      setUploading(false)
     }
-    setPhotos((prev) => [...prev, ...newPhotos])
-    setUploading(false)
   }, [photos.length])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -97,6 +104,12 @@ export function Step3Photos({ situation, onNext, defaultPhotos = [] }: Props) {
           💡 {advice.tip}
         </p>
       </div>
+
+      {uploadError && (
+        <p className="text-sm text-red-400 border border-red-900/40 bg-red-900/10 px-4 py-3">
+          {uploadError}
+        </p>
+      )}
 
       {/* Dropzone */}
       <div
