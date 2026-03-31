@@ -147,7 +147,7 @@ a { color: inherit; text-decoration: none; }
 .nav-tag { font-family: 'Noto Sans JP', sans-serif; font-size: 8px; letter-spacing: 0.45em; color: rgba(255,255,255,0.3); text-transform: uppercase; mix-blend-mode: difference; }
 
 /* ── HERO ── */
-.hero { position: relative; height: 100vh; min-height: 640px; overflow: hidden; display: flex; align-items: flex-end; }
+.hero { position: relative; height: 100vh; height: 100dvh; min-height: 640px; overflow: hidden; display: flex; align-items: flex-end; }
 .hero-bg { position: absolute; inset: 0; will-change: transform; }
 .hero-bg img { width: 100%; height: 125%; object-fit: cover; object-position: center 65%; filter: brightness(0.5); }
 .hero-grain {
@@ -292,12 +292,15 @@ footer { border-top: 1px solid rgba(255,255,255,0.05); padding: 56px 0; }
   body { cursor: auto; }
   #cur, #cur-d { display: none; }
   .two, .two.flip { grid-template-columns: 1fr; }
+  .two.flip .ph { order: -1; }
   .dg { grid-template-columns: 1fr; }
   .sp-grid { grid-template-columns: 1fr; }
   .s-ghost { display: none; }
   .pq { padding: 80px 24px; }
   .ft { flex-direction: column; text-align: center; }
   .ft-info p { text-align: center; }
+  .cta-btn { cursor: auto; }
+  .hero { height: 100svh; min-height: 600px; }
 }
 </style>
 </head>
