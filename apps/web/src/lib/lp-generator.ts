@@ -370,7 +370,7 @@ footer { border-top: 1px solid rgba(255,255,255,0.05); padding: 56px 0; }
     <img src="${LOGO_URL}" class="nav-shield" alt="HI-TOP">
     <span class="nav-logo">HI-TOP JOURNAL</span>
   </a>
-  <span class="nav-tag sans">Selection</span>
+  <a href="https://hitoplp-api.hitopcorp.workers.dev/" class="nav-tag sans" style="text-decoration:none;color:rgba(255,255,255,0.45);font-size:11px;letter-spacing:0.12em;transition:color 0.3s ease;">← Back to List</a>
 </nav>
 
 <!-- HERO -->
@@ -585,7 +585,7 @@ ${content.pullQuote2 ? `<div class="pq">
 ${vehicle.audioUrl ? `
 <!-- Audio Player -->
 <button id="audio-trigger" style="position:fixed;bottom:24px;right:clamp(24px,5vw,60px);z-index:89;background:rgba(10,10,10,0.85);backdrop-filter:blur(12px);border:1px solid rgba(var(--accent-rgb),0.25);color:#F5F5F0;width:48px;height:48px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.3s ease;">
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="8" r="5"/><path d="M2 21v-1a7 7 0 0 1 7-7h2a7 7 0 0 1 7 7v1"/><path d="M18 8.5c.5.5 1 1.5 1 3s-.5 2.5-1 3"/><path d="M21 6c1 1 2 3 2 5.5s-1 4.5-2 5.5"/></svg>
 </button>
 <div id="audio-bar" style="position:fixed;bottom:0;left:0;right:0;z-index:90;background:rgba(10,10,10,0.95);backdrop-filter:blur(16px);border-top:1px solid rgba(255,255,255,0.06);padding:14px clamp(24px,5vw,60px);display:flex;align-items:center;gap:16px;transform:translateY(100%);transition:transform 0.4s cubic-bezier(0.16,1,0.3,1);">
   <button id="audio-toggle" style="background:none;border:1px solid rgba(var(--accent-rgb),0.3);color:#F5F5F0;width:40px;height:40px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.3s ease;flex-shrink:0;">
