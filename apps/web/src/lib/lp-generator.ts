@@ -342,6 +342,9 @@ footer { border-top: 1px solid rgba(255,255,255,0.05); padding: 56px 0; }
 @media (max-width: 900px) {
   body { cursor: auto; }
   #cur, #cur-d { display: none; }
+  .nav-shield { width: 32px; height: 32px; }
+  .nav-logo { font-size: 7px; letter-spacing: 0.22em; }
+  .nav-brand { gap: 4px; }
   .two, .two.flip { grid-template-columns: 1fr; }
   .two.flip .ph { order: -1; }
   .ph img { object-position: center center; }

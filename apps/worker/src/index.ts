@@ -92,6 +92,9 @@ footer p{font-family:'Satoshi',sans-serif;font-weight:300;font-size:10px;color:r
 @media(max-width:640px){
   .grid{grid-template-columns:1fr}
   footer{flex-direction:column;text-align:center}
+  .nav-shield{width:32px;height:32px}
+  .nav-logo{font-size:7px;letter-spacing:0.22em}
+  .nav-brand{gap:4px}
 }
 </style>
 </head>
