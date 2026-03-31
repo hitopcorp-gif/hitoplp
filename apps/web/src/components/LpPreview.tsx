@@ -24,6 +24,14 @@ export function LpPreview({ vehicle, content }: Props) {
     doc.close()
   }, [vehicle, content, viewMode])
 
+  function openInBrowser() {
+    const html = generateLpHtml(vehicle, content, false)
+    const blob = new Blob([html], { type: 'text/html' })
+    const url = URL.createObjectURL(blob)
+    window.open(url, '_blank')
+    setTimeout(() => URL.revokeObjectURL(url), 10000)
+  }
+
   return (
     <div className="border border-white/10 overflow-hidden" style={{ borderRadius: 2 }}>
       {/* Browser chrome */}
@@ -38,6 +46,18 @@ export function LpPreview({ vehicle, content }: Props) {
             cars.hi-top.net/{vehicle.slug}
           </span>
         </div>
+        {/* Open in browser */}
+        <button
+          onClick={openInBrowser}
+          title="ブラウザで開く"
+          className="p-1.5 rounded text-white/30 hover:text-white/60 transition-colors"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+            <polyline points="15 3 21 3 21 9"/>
+            <line x1="10" y1="14" x2="21" y2="3"/>
+          </svg>
+        </button>
         {/* View mode toggle */}
         <div className="flex gap-1">
           <button
