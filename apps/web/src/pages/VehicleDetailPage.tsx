@@ -11,6 +11,15 @@ import {
   ChevronLeft, Eye, Globe, RotateCcw, BadgeCheck, Edit, Sparkles, Check, Trash2
 } from 'lucide-react'
 
+interface LpIndexEntry {
+  slug: string
+  name: string
+  nameJa: string
+  year: number
+  price: string
+  heroUrl: string
+}
+
 export function VehicleDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -42,17 +51,29 @@ export function VehicleDetailPage() {
     if (!id || !vehicle) return
     setPublishing(true)
     const nextStatus = vehicle.status === 'published' ? 'draft' : 'published'
+    const API_BASE = import.meta.env.VITE_API_BASE_URL
 
-    // 公開時: LP HTMLをR2にアップロード
     if (nextStatus === 'published' && vehicle.generatedContent) {
+      // 1. LP HTMLをR2に保存
       const content = editedContent ?? vehicle.generatedContent
       const html = generateLpHtml({ ...vehicle, detailPhotoUrls: detailPhotoUrls ?? vehicle.detailPhotoUrls }, content, false)
-      const API_BASE = import.meta.env.VITE_API_BASE_URL
       await fetch(`${API_BASE}/api/upload/lp/${vehicle.slug}.html`, {
         method: 'PUT',
         headers: { 'content-type': 'text/html; charset=utf-8' },
         body: html,
       })
+      // 2. index.jsonを更新（追加）
+      await updateLpIndex(API_BASE, vehicle.slug, {
+        slug: vehicle.slug,
+        name: vehicle.basicInfo.name,
+        nameJa: content.nameJa ?? '',
+        year: vehicle.basicInfo.year,
+        price: vehicle.basicInfo.isAsk ? 'ASK' : vehicle.basicInfo.price,
+        heroUrl: vehicle.photos.find(p => p.tag === 'hero')?.url ?? vehicle.photos[0]?.url ?? '',
+      })
+    } else if (nextStatus === 'draft') {
+      // 非公開: index.jsonから削除
+      await updateLpIndex(API_BASE, vehicle.slug, null)
     }
 
     await updateDoc(doc(db, 'vehicles', id), {
@@ -62,6 +83,28 @@ export function VehicleDetailPage() {
     })
     setVehicle((prev) => prev ? { ...prev, status: nextStatus } : prev)
     setPublishing(false)
+  }
+
+  async function updateLpIndex(apiBase: string, slug: string, entry: LpIndexEntry | null) {
+    // 現在のindex取得
+    let index: LpIndexEntry[] = []
+    try {
+      const res = await fetch(`${apiBase}/api/image/lp/index.json`)
+      if (res.ok) index = await res.json()
+    } catch { /* 初回は空 */ }
+
+    if (entry === null) {
+      index = index.filter(e => e.slug !== slug)
+    } else {
+      index = index.filter(e => e.slug !== slug)
+      index.unshift(entry) // 新しい順に先頭へ
+    }
+
+    await fetch(`${apiBase}/api/upload/lp/index.json`, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(index),
+    })
   }
 
   async function handleDelete() {

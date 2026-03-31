@@ -16,6 +16,111 @@ app.use('*', async (c, next) => {
 
 app.get('/health', (c) => c.json({ ok: true }))
 
+// ── LP一覧ギャラリーページ ──
+app.get('/', async (c) => {
+  const obj = await c.env.IMAGES.get('lp/index.json')
+  type Entry = { slug: string; name: string; nameJa: string; year: number; price: string; heroUrl: string }
+  const entries: Entry[] = obj ? await obj.json() : []
+
+  const cards = entries.map(e => `
+    <a class="card" href="/${e.slug}">
+      <div class="card-img">
+        ${e.heroUrl ? `<img src="${e.heroUrl}" alt="${e.name}" loading="lazy">` : '<div class="card-img-placeholder"></div>'}
+        <div class="card-img-grad"></div>
+      </div>
+      <div class="card-body">
+        <p class="card-year sans">${e.year}</p>
+        <h2 class="card-name en">${e.name}</h2>
+        ${e.nameJa ? `<p class="card-name-ja">${e.nameJa}</p>` : ''}
+        <p class="card-price en">${e.price}</p>
+      </div>
+    </a>`).join('')
+
+  const html = `<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HI-TOP CORPORATION — Selection</title>
+<meta name="description" content="HI-TOP CORPORATIONが選び抜いた一台。福岡・北九州。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=Noto+Serif+JP:wght@200;300&family=Noto+Sans+JP:wght@300;400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:#0A0A0A;color:#F5F5F0;font-family:'Noto Serif JP',serif;font-weight:300;min-height:100vh}
+a{text-decoration:none;color:inherit}
+img{display:block;width:100%;height:100%;object-fit:cover}
+.en{font-family:'Cormorant Garamond',serif}
+.sans{font-family:'Noto Sans JP',sans-serif}
+
+/* NAV */
+.nav{padding:32px clamp(24px,5vw,80px);display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.05)}
+.nav-brand{display:flex;flex-direction:column;gap:3px}
+.nav-logo{font-family:'Cormorant Garamond',serif;font-size:18px;letter-spacing:0.35em;color:#fff;text-transform:uppercase;line-height:1}
+.nav-logo-ja{font-family:'Noto Sans JP',sans-serif;font-size:8px;letter-spacing:0.2em;color:rgba(255,255,255,0.3);line-height:1}
+.nav-tag{font-family:'Noto Sans JP',sans-serif;font-size:8px;letter-spacing:0.45em;color:rgba(255,255,255,0.25);text-transform:uppercase}
+
+/* HERO */
+.hero{padding:clamp(60px,10vh,120px) clamp(24px,5vw,80px) clamp(40px,6vh,80px)}
+.hero-label{font-family:'Noto Sans JP',sans-serif;font-size:9px;letter-spacing:0.5em;color:#C4A265;margin-bottom:20px}
+.hero-title{font-family:'Cormorant Garamond',serif;font-weight:300;font-size:clamp(40px,6vw,80px);line-height:1;color:#fff;margin-bottom:16px}
+.hero-sub{font-family:'Noto Serif JP',serif;font-weight:200;font-size:clamp(13px,1.1vw,15px);color:rgba(245,245,240,0.35);letter-spacing:0.08em}
+
+/* GRID */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(clamp(280px,30vw,420px),1fr));gap:clamp(16px,2.5vw,40px);padding:0 clamp(24px,5vw,80px) 120px}
+.empty{padding:80px clamp(24px,5vw,80px);font-family:'Noto Sans JP',sans-serif;font-size:12px;color:rgba(255,255,255,0.2);letter-spacing:0.2em}
+
+/* CARD */
+.card{display:block;cursor:pointer;transition:opacity 0.3s}
+.card:hover{opacity:0.85}
+.card-img{position:relative;overflow:hidden;aspect-ratio:16/10}
+.card-img img{transition:transform 8s ease}
+.card:hover .card-img img{transform:scale(1.04)}
+.card-img-placeholder{width:100%;height:100%;background:#111}
+.card-img-grad{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 50%,rgba(0,0,0,0.4))}
+.card-body{padding:20px 0 0}
+.card-year{font-size:9px;letter-spacing:0.4em;color:#C4A265;margin-bottom:8px}
+.card-name{font-weight:300;font-size:clamp(18px,2vw,24px);line-height:1.15;color:#F5F5F0;margin-bottom:6px}
+.card-name-ja{font-family:'Noto Serif JP',serif;font-weight:200;font-size:11px;color:rgba(245,245,240,0.3);letter-spacing:0.2em;margin-bottom:10px}
+.card-price{font-weight:300;font-size:clamp(16px,1.8vw,22px);color:rgba(245,245,240,0.6)}
+
+/* FOOTER */
+footer{border-top:1px solid rgba(255,255,255,0.05);padding:40px clamp(24px,5vw,80px);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px}
+footer p{font-family:'Noto Sans JP',sans-serif;font-size:10px;color:rgba(255,255,255,0.2);letter-spacing:0.15em}
+
+@media(max-width:640px){
+  .grid{grid-template-columns:1fr}
+  footer{flex-direction:column;text-align:center}
+}
+</style>
+</head>
+<body>
+<nav class="nav">
+  <div class="nav-brand">
+    <span class="nav-logo en">HI-TOP</span>
+    <span class="nav-logo-ja sans">ハイトップコーポレーション</span>
+  </div>
+  <span class="nav-tag sans">Selection</span>
+</nav>
+<div class="hero">
+  <p class="hero-label sans">Current Selection</p>
+  <h1 class="hero-title en">One Car.<br>One Story.</h1>
+  <p class="hero-sub">HI-TOP CORPORATIONが選び抜いた、今この一台。</p>
+</div>
+${entries.length > 0
+  ? `<div class="grid">${cards}</div>`
+  : '<p class="empty">現在公開中の車両はありません。</p>'}
+<footer>
+  <p class="en">HI-TOP CORPORATION</p>
+  <p class="sans">福岡県北九州市 ｜ hi-top.net</p>
+</footer>
+</body>
+</html>`
+
+  return c.html(html)
+})
+
 // ── LP配信（R2から静的HTML） ──
 app.get('/:slug{[a-z0-9-]+}', async (c) => {
   const slug = c.req.param('slug')
