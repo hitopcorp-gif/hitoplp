@@ -160,7 +160,10 @@ app.get('/api/image/:key{.+}', async (c) => {
 
   const headers = new Headers()
   obj.writeHttpMetadata(headers)
-  headers.set('cache-control', 'public, max-age=31536000')
+  // index.json changes frequently — don't cache it; images are immutable — cache forever
+  headers.set('cache-control', key === 'lp/index.json'
+    ? 'no-cache, no-store, must-revalidate'
+    : 'public, max-age=31536000')
 
   return new Response(obj.body, { headers })
 })

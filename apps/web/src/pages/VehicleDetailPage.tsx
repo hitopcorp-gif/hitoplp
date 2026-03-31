@@ -123,8 +123,18 @@ export function VehicleDetailPage() {
   }
 
   async function handleDelete() {
-    if (!id) return
+    if (!id || !vehicle) return
     if (!window.confirm('このLPを削除しますか？この操作は取り消せません。')) return
+    // Remove from R2 index + delete HTML
+    const API_BASE = import.meta.env.VITE_API_BASE_URL
+    try {
+      await updateLpIndex(API_BASE, vehicle.slug, null)
+      await fetch(`${API_BASE}/api/upload/lp/${vehicle.slug}.html`, {
+        method: 'PUT',
+        headers: { 'content-type': 'text/html' },
+        body: '',
+      })
+    } catch { /* best effort */ }
     await deleteDoc(doc(db, 'vehicles', id))
     navigate('/')
   }
