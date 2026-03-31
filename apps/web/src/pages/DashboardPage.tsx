@@ -34,13 +34,13 @@ export function DashboardPage() {
         </div>
         <div className="flex items-center gap-4">
           <a
-            href="https://cars.hi-top.net"
+            href="https://hitoplp-api.hitopcorp.workers.dev"
             target="_blank"
             rel="noopener noreferrer"
             className="text-xs text-white/40 hover:text-white flex items-center gap-1.5 transition-colors"
           >
             <ExternalLink className="w-3 h-3" />
-            cars.hi-top.net
+            LP一覧を開く
           </a>
           <Button
             variant="ghost"
