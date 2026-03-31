@@ -24,7 +24,7 @@ jobs:
         run: cd apps/web && npx tsc --noEmit
 
       - name: ESLint
-        run: cd apps/web && npx eslint src --max-warnings 0
+        run: cd apps/web && npm run lint
 
       - name: Build
         run: cd apps/web && npm run build
