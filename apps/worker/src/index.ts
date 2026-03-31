@@ -57,7 +57,10 @@ img{display:block;width:100%;height:100%;object-fit:cover}
 /* NAV */
 .nav{padding:32px clamp(24px,5vw,80px);display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.05)}
 .nav-brand{display:flex;flex-direction:column;gap:3px}
-.nav-logo{font-family:'Cormorant Garamond',serif;font-size:18px;letter-spacing:0.35em;color:#fff;text-transform:uppercase;line-height:1}
+.nav-brand{display:flex;align-items:center;gap:12px;text-decoration:none}
+.nav-shield{width:40px;height:40px;object-fit:contain;filter:brightness(0) invert(1);opacity:0.85}
+.nav-text{display:flex;flex-direction:column;gap:2px}
+.nav-logo{font-family:'Cormorant Garamond',serif;font-size:16px;letter-spacing:0.35em;color:#fff;text-transform:uppercase;line-height:1}
 .nav-logo-ja{font-family:'Noto Sans JP',sans-serif;font-size:8px;letter-spacing:0.2em;color:rgba(255,255,255,0.3);line-height:1}
 .nav-tag{font-family:'Noto Sans JP',sans-serif;font-size:8px;letter-spacing:0.45em;color:rgba(255,255,255,0.25);text-transform:uppercase}
 
@@ -97,10 +100,13 @@ footer p{font-family:'Noto Sans JP',sans-serif;font-size:10px;color:rgba(255,255
 </head>
 <body>
 <nav class="nav">
-  <div class="nav-brand">
-    <span class="nav-logo en">HI-TOP</span>
-    <span class="nav-logo-ja sans">ハイトップコーポレーション</span>
-  </div>
+  <a href="https://hi-top.net" class="nav-brand">
+    <img src="https://hitoplp-api.hitopcorp.workers.dev/api/image/assets/logo.png" class="nav-shield" alt="HI-TOP">
+    <div class="nav-text">
+      <span class="nav-logo en">HI-TOP</span>
+      <span class="nav-logo-ja sans">ハイトップコーポレーション</span>
+    </div>
+  </a>
   <span class="nav-tag sans">Selection</span>
 </nav>
 <div class="hero">

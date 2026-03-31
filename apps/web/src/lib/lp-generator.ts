@@ -1,5 +1,7 @@
 import type { Vehicle, GeneratedContent, ColorTemplate, CarPhoto } from '@/types'
 
+const LOGO_URL = 'https://hitoplp-api.hitopcorp.workers.dev/api/image/assets/logo.png'
+
 const COLOR_VARS: Record<ColorTemplate, string> = {
   dark: `--bg: #0A0A0A; --text: #F5F5F0; --text-dim: #7A7A75; --accent: #C4A265; --accent-rgb: 196,162,101;`,
   warm: `--bg: #111009; --text: #F5F0E6; --text-dim: #8A8070; --accent: #C4A265; --accent-rgb: 196,162,101;`,
@@ -145,12 +147,14 @@ a { color: inherit; text-decoration: none; }
 /* ── NAV ── */
 .nav {
   position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-  padding: 24px clamp(24px, 5vw, 72px);
+  padding: 18px clamp(24px, 5vw, 72px);
   display: flex; justify-content: space-between; align-items: center;
 }
-.nav-brand { display: flex; flex-direction: column; gap: 2px; }
-.nav-logo { font-family: 'Cormorant Garamond', serif; font-size: 16px; letter-spacing: 0.35em; color: #fff; text-transform: uppercase; line-height: 1; mix-blend-mode: difference; }
-.nav-logo-ja { font-family: 'Noto Sans JP', sans-serif; font-size: 8px; letter-spacing: 0.2em; color: rgba(255,255,255,0.35); line-height: 1; mix-blend-mode: difference; }
+.nav-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+.nav-shield { width: 40px; height: 40px; object-fit: contain; filter: brightness(0) invert(1); opacity: 0.9; mix-blend-mode: difference; }
+.nav-text { display: flex; flex-direction: column; gap: 2px; }
+.nav-logo { font-family: 'Cormorant Garamond', serif; font-size: 14px; letter-spacing: 0.35em; color: #fff; text-transform: uppercase; line-height: 1; mix-blend-mode: difference; }
+.nav-logo-ja { font-family: 'Noto Sans JP', sans-serif; font-size: 7px; letter-spacing: 0.2em; color: rgba(255,255,255,0.35); line-height: 1; mix-blend-mode: difference; }
 .nav-tag { font-family: 'Noto Sans JP', sans-serif; font-size: 8px; letter-spacing: 0.45em; color: rgba(255,255,255,0.3); text-transform: uppercase; mix-blend-mode: difference; }
 
 /* ── HERO ── */
@@ -344,9 +348,12 @@ footer { border-top: 1px solid rgba(255,255,255,0.05); padding: 56px 0; }
 <div id="sprog"></div>
 
 <nav class="nav">
-  <a href="https://hi-top.net" class="nav-brand" style="text-decoration:none;">
-    <span class="nav-logo en">HI-TOP</span>
-    <span class="nav-logo-ja sans">ハイトップコーポレーション</span>
+  <a href="https://hi-top.net" class="nav-brand">
+    <img src="${LOGO_URL}" class="nav-shield" alt="HI-TOP">
+    <div class="nav-text">
+      <span class="nav-logo en">HI-TOP</span>
+      <span class="nav-logo-ja sans">ハイトップコーポレーション</span>
+    </div>
   </a>
   <span class="nav-tag sans">Selection</span>
 </nav>
@@ -496,9 +503,12 @@ ${content.pullQuote2 ? `<div class="pq">
 <footer>
   <div class="w">
     <div class="ft">
-      <a href="https://hi-top.net" style="text-decoration:none;">
-        <p class="ft-logo en">HI-TOP</p>
-        <p class="sans" style="font-size:9px;color:var(--text-dim);letter-spacing:0.2em;margin-top:4px;">ハイトップコーポレーション</p>
+      <a href="https://hi-top.net" style="text-decoration:none;display:flex;align-items:center;gap:14px;">
+        <img src="${LOGO_URL}" style="width:48px;height:48px;object-fit:contain;filter:brightness(0) invert(1);opacity:0.6;" alt="HI-TOP">
+        <div>
+          <p class="ft-logo en">HI-TOP</p>
+          <p class="sans" style="font-size:9px;color:var(--text-dim);letter-spacing:0.2em;margin-top:4px;">ハイトップコーポレーション</p>
+        </div>
       </a>
       <div class="ft-info">
         <p class="sans">HI-TOP Corporation</p>
