@@ -27,7 +27,7 @@ function splitIntoLines(name: string): string[] {
   const lines: string[] = []
   let current = ''
   for (const w of words) {
-    if (current.length + w.length > 22 && current.length > 0) {
+    if (current.length + w.length > 25 && current.length > 0) {
       lines.push(current.trim())
       current = w
     } else {
@@ -165,19 +165,19 @@ a { color: inherit; text-decoration: none; }
   position: absolute; inset: 0; pointer-events: none; opacity: 0.18;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
 }
-.hero-grad { position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 20%, rgba(0,0,0,0.15) 50%, rgba(0,0,0,0.80) 100%); }
+.hero-grad { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,0.08) 0%, transparent 30%, rgba(0,0,0,0.22) 58%, rgba(0,0,0,0.92) 100%); }
 .hero-content { position: relative; z-index: 2; width: 100%; padding: clamp(48px, 10vh, 100px) clamp(24px, 5vw, 72px); }
 .hero-label {
   font-family: 'Noto Sans JP', sans-serif; font-size: 9px;
   letter-spacing: 0.55em; color: var(--accent); text-transform: uppercase;
-  margin-bottom: 28px;
+  margin-bottom: 44px;
   opacity: ${preview ? '1' : '0'}; transform: ${preview ? 'none' : 'translateY(8px)'};
   transition: opacity 0.7s var(--ease) 0.1s, transform 0.7s var(--ease) 0.1s;
 }
 .hero-name {
-  font-family: 'Playfair Display', serif; font-weight: 800;
-  font-size: clamp(32px, 6.5vw, 100px);
-  line-height: 1.0; letter-spacing: -0.02em;
+  font-family: 'Playfair Display', serif; font-weight: 700;
+  font-size: clamp(34px, 7vw, 104px);
+  line-height: 0.95; letter-spacing: -0.015em;
   color: #fff; overflow: hidden;
 }
 .hero-name-line {
@@ -185,18 +185,19 @@ a { color: inherit; text-decoration: none; }
   transform: ${preview ? 'none' : 'translateY(105%)'};
   transition: transform 1.0s var(--ease);
 }
-.hero-name-line:nth-child(2) { transition-delay: 0.08s; padding-left: clamp(24px, 4vw, 80px); }
+.hero-name-line:nth-child(n+2) { font-style: italic; font-weight: 400; }
+.hero-name-line:nth-child(2) { transition-delay: 0.08s; padding-left: clamp(12px, 2.5vw, 40px); }
 .hero-name-line:nth-child(3) { transition-delay: 0.16s; }
 .hero-name-ja {
   font-family: 'Noto Serif JP', serif; font-weight: 200;
-  font-size: clamp(11px, 1.1vw, 14px); color: rgba(245,245,240,0.35);
-  letter-spacing: 0.25em; margin-top: 16px;
+  font-size: clamp(11px, 1.1vw, 14px); color: rgba(245,245,240,0.45);
+  letter-spacing: 0.25em; margin-top: 22px;
   opacity: ${preview ? '1' : '0'}; transform: ${preview ? 'none' : 'translateY(10px)'};
   transition: opacity 0.8s var(--ease) 0.4s, transform 0.8s var(--ease) 0.4s;
 }
 .loaded .hero-name-ja { opacity: 1; transform: none; }
 .hero-foot {
-  margin-top: 36px; display: flex; align-items: flex-end; justify-content: space-between;
+  margin-top: 52px; display: flex; align-items: flex-end; justify-content: space-between;
   flex-wrap: wrap; gap: 20px;
 }
 .hero-sub {
