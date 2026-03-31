@@ -111,7 +111,7 @@ export function generateLpHtml(vehicle: Vehicle, content: GeneratedContent, prev
 ${heroUrl ? `<meta property="og:image" content="${heroUrl}">` : ''}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://api.fontshare.com/v2/css?f[]=satoshi@900,800,700,400,300&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@400;500;600&family=Playfair+Display:ital,wght@0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;1,300;1,400&family=Noto+Sans+JP:wght@300;400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,300;1,300;1,400&family=Noto+Sans+JP:wght@300;400&display=swap" rel="stylesheet">
 <style>
 /* ── RESET ── */
 :root {
@@ -253,8 +253,8 @@ a { color: inherit; text-decoration: none; }
 /* ── SECTION COMMON ── */
 .sec { padding: clamp(100px, 14vh, 160px) 0; position: relative; }
 .s-eyebrow { font-family: 'Noto Sans JP', sans-serif; font-size: 8px; letter-spacing: 0.65em; color: var(--accent); text-transform: uppercase; margin-bottom: 22px; }
-.s-title { font-family: 'Playfair Display', serif; font-weight: 700; font-size: clamp(38px, 5vw, 76px); line-height: 1.05; color: var(--text); margin-bottom: 36px; }
-.s-ghost { font-family: 'Playfair Display', serif; font-size: clamp(60px, 11vw, 150px); font-weight: 700; color: transparent; -webkit-text-stroke: 1px rgba(255,255,255,0.07); position: absolute; right: clamp(24px, 5vw, 80px); top: clamp(80px, 10vh, 120px); line-height: 1; pointer-events: none; user-select: none; }
+.s-title { font-family: 'Satoshi', sans-serif; font-weight: 700; font-size: clamp(34px, 4.5vw, 68px); line-height: 1.05; letter-spacing: -0.02em; color: var(--text); margin-bottom: 36px; }
+.s-ghost { font-family: 'Satoshi', sans-serif; font-size: clamp(60px, 11vw, 150px); font-weight: 700; letter-spacing: -0.03em; color: transparent; -webkit-text-stroke: 1px rgba(255,255,255,0.07); position: absolute; right: clamp(24px, 5vw, 80px); top: clamp(80px, 10vh, 120px); line-height: 1; pointer-events: none; user-select: none; }
 .s-body p { font-size: clamp(14px, 1.1vw, 16px); color: var(--text-dim); line-height: 2.1; }
 .s-body p + p { margin-top: 1.1em; }
 
@@ -290,7 +290,7 @@ a { color: inherit; text-decoration: none; }
 
 /* ── SPECS ── */
 .sp-sec { padding: clamp(80px, 12vh, 140px) 0; border-top: 1px solid rgba(255,255,255,0.05); }
-.sp-hed { font-family: 'Playfair Display', serif; font-weight: 700; font-size: clamp(34px, 4vw, 52px); color: var(--text); margin-bottom: clamp(40px, 6vw, 72px); }
+.sp-hed { font-family: 'Satoshi', sans-serif; font-weight: 700; font-size: clamp(34px, 4vw, 52px); letter-spacing: -0.02em; color: var(--text); margin-bottom: clamp(40px, 6vw, 72px); }
 .sp-grid { display: grid; grid-template-columns: 1fr 1fr; }
 .sp-row { display: flex; justify-content: space-between; align-items: baseline; padding: 15px 0; border-bottom: 1px solid rgba(255,255,255,0.045); gap: 16px; }
 .sp-k { font-family: 'Noto Sans JP', sans-serif; font-size: 11px; letter-spacing: 0.12em; color: var(--text-dim); flex-shrink: 0; }
@@ -312,7 +312,7 @@ a { color: inherit; text-decoration: none; }
 /* ── FOOTER ── */
 footer { border-top: 1px solid rgba(255,255,255,0.05); padding: 56px 0; }
 .ft { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 24px; }
-.ft-logo { font-family: 'Cormorant Garamond', serif; font-weight: 300; font-size: 18px; letter-spacing: 0.3em; color: var(--text); text-transform: uppercase; }
+.ft-logo { font-family: 'Satoshi', sans-serif; font-weight: 300; font-size: 13px; letter-spacing: 0.25em; color: var(--text); text-transform: uppercase; }
 .ft-info p { font-family: 'Noto Sans JP', sans-serif; font-size: 10px; color: var(--text-dim); letter-spacing: 0.12em; line-height: 1.9; text-align: right; }
 
 /* ── MOBILE PHOTO STRIP ── */
