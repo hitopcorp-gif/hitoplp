@@ -10,7 +10,17 @@ function photosByTag(photos: CarPhoto[], tag: CarPhoto['tag']): CarPhoto[] {
   return photos.filter((p) => p.tag === tag).sort((a, b) => a.order - b.order)
 }
 
-export function generateLpHtml(vehicle: Vehicle, content: GeneratedContent): string {
+type DetailItem = { caption: string; description: string } | string
+
+function normalizeDetail(d: DetailItem): { caption: string; description: string } {
+  if (typeof d === 'string') {
+    const [caption, ...rest] = d.split('：')
+    return { caption: caption ?? d, description: rest.join('：') ?? '' }
+  }
+  return d
+}
+
+export function generateLpHtml(vehicle: Vehicle, content: GeneratedContent, preview = false): string {
   const { basicInfo, colorTemplate, photos } = vehicle
   const vars = COLOR_VARS[colorTemplate]
 
@@ -74,7 +84,7 @@ a { color: inherit; text-decoration: none; }
 .container { max-width: 1400px; margin: 0 auto; padding: 0 clamp(24px, 5vw, 80px); }
 
 /* Animations */
-.fade-in { opacity: 0; transform: translateY(24px); transition: opacity 0.8s ease, transform 0.8s ease; }
+.fade-in { opacity: ${preview ? '1' : '0'}; transform: ${preview ? 'none' : 'translateY(24px)'}; transition: opacity 0.8s ease, transform 0.8s ease; }
 .fade-in.visible { opacity: 1; transform: none; }
 
 /* ── HERO ── */
@@ -233,14 +243,17 @@ ${fullBreed2 ? `<div class="full-bleed fade-in"><img src="${fullBreed2}" alt="">
       <p class="section-title-jp">— ${content.section3.subtitle}</p>
     </div>
     <div class="detail-grid fade-in">
-      ${content.section3.details.map((d, i) => `
+      ${content.section3.details.map((d, i) => {
+        const detail = normalizeDetail(d as DetailItem)
+        return `
       <div class="detail-card">
         <div class="img-wrap">${detailGrid[i] ? `<img src="${detailGrid[i]}" alt="">` : '<div style="width:100%;height:100%;background:#111;"></div>'}</div>
         <div class="caption">
-          <strong>${d.caption}</strong>
-          <p>${d.description}</p>
+          <strong>${detail.caption}</strong>
+          <p>${detail.description}</p>
         </div>
-      </div>`).join('')}
+      </div>`
+      }).join('')}
     </div>
   </div>
 </section>

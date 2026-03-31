@@ -11,7 +11,7 @@ export function LpPreview({ vehicle, content }: Props) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
 
   useEffect(() => {
-    const html = generateLpHtml(vehicle, content)
+    const html = generateLpHtml(vehicle, content, true)
     const iframe = iframeRef.current
     if (!iframe) return
     const doc = iframe.contentDocument
