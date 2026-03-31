@@ -95,7 +95,7 @@ a { color: inherit; text-decoration: none; }
 .hero-overlay { position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.6) 100%); }
 .hero-content { position: relative; z-index: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; padding: clamp(40px, 8vh, 100px) clamp(24px, 6vw, 100px); }
 .hero-label { font-family: 'Noto Sans JP', sans-serif; font-size: 11px; letter-spacing: 0.3em; color: var(--accent); text-transform: uppercase; margin-bottom: 20px; }
-.hero-title { font-family: 'Cormorant Garamond', serif; font-weight: 300; font-size: clamp(36px, 7vw, 80px); line-height: 1.05; color: var(--text); max-width: 800px; }
+.hero-title { font-family: 'Noto Serif JP', serif; font-weight: 200; font-size: clamp(22px, 3.2vw, 48px); line-height: 1.3; color: var(--text); max-width: 900px; letter-spacing: 0.05em; }
 .hero-subtitle { font-family: 'Noto Serif JP', serif; font-weight: 200; font-size: clamp(14px, 1.8vw, 18px); color: var(--text-dim); margin-top: 16px; }
 .hero-copy { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: clamp(18px, 2.5vw, 26px); color: var(--accent); margin-top: 12px; }
 
