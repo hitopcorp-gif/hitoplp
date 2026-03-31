@@ -23,26 +23,31 @@ export async function generateContent({
   const situationPrompt = SITUATION_PROMPTS[situation]
 
   const userPrompt = `
-【車両情報】
+この1台について記事を書いてください。
+
+━━ この個体のデータ ━━
 車名: ${basicInfo.name}
 年式: ${basicInfo.year}年
 走行距離: ${basicInfo.mileage}
-価格: ${basicInfo.isAsk ? 'ASK（要問合せ）' : basicInfo.price}
+修復歴: ${basicInfo.hasRepairHistory ? 'あり' : 'なし（修復歴のないきれいな1台）'}
 車検: ${basicInfo.shaken}
 ミッション: ${basicInfo.transmission}
 駆動方式: ${basicInfo.drive}
-エンジン: ${basicInfo.engine}
-${basicInfo.maxPower ? `最高出力: ${basicInfo.maxPower}` : ''}
-${basicInfo.maxTorque ? `最大トルク: ${basicInfo.maxTorque}` : ''}
-修復歴: ${basicInfo.hasRepairHistory ? 'あり' : 'なし'}
-HI-TOPカスタム内容: ${basicInfo.customContent}
-${basicInfo.tagline ? `一行コピー（使用してください）: ${basicInfo.tagline}` : ''}
+エンジン: ${basicInfo.engine}${basicInfo.maxPower ? `\n最高出力: ${basicInfo.maxPower}` : ''}${basicInfo.maxTorque ? `\n最大トルク: ${basicInfo.maxTorque}` : ''}
+価格: ${basicInfo.isAsk ? 'ASK（商談形式）' : basicInfo.price}
 
-【シチュエーション】
-${situationConfig.label} — ${situationPrompt}
+━━ HI-TOPカスタム内容（★最重要・必ず文章の核に）━━
+${basicInfo.customContent}
 
-【カラーテンプレート】
-${colorTemplate}
+━━ 世界観・シチュエーション ━━
+${situationConfig.label}：${situationPrompt}
+${basicInfo.tagline ? `\n★一行コピー指定（必ずそのまま使用）: ${basicInfo.tagline}` : ''}
+
+━━ 注意 ━━
+・メーカーの歴史・ブランドの物語は書かない
+・HI-TOPのカスタム内容を具体的に文章に織り込む
+・この個体のコンディション（走行距離・修復歴）にも触れる
+・カラーテンプレート: ${colorTemplate}
 
 以下のJSON形式で出力してください（他のテキスト不要）：
 {
