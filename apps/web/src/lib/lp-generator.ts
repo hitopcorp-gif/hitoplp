@@ -582,6 +582,47 @@ ${content.pullQuote2 ? `<div class="pq">
   document.querySelectorAll('.r').forEach(function(el){obs.observe(el)})
 })()
 </script>
+${vehicle.audioUrl ? `
+<!-- Audio Player -->
+<button id="audio-trigger" style="position:fixed;bottom:24px;right:clamp(24px,5vw,60px);z-index:89;background:rgba(10,10,10,0.85);backdrop-filter:blur(12px);border:1px solid rgba(var(--accent-rgb),0.25);color:#F5F5F0;width:48px;height:48px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.3s ease;">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+</button>
+<div id="audio-bar" style="position:fixed;bottom:0;left:0;right:0;z-index:90;background:rgba(10,10,10,0.95);backdrop-filter:blur(16px);border-top:1px solid rgba(255,255,255,0.06);padding:14px clamp(24px,5vw,60px);display:flex;align-items:center;gap:16px;transform:translateY(100%);transition:transform 0.4s cubic-bezier(0.16,1,0.3,1);">
+  <button id="audio-toggle" style="background:none;border:1px solid rgba(var(--accent-rgb),0.3);color:#F5F5F0;width:40px;height:40px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.3s ease;flex-shrink:0;">
+    <svg id="play-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+    <svg id="pause-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+  </button>
+  <div style="flex:1;display:flex;flex-direction:column;gap:4px;min-width:0;">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-family:'Noto Sans JP',sans-serif;font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:0.15em;">この記事を聴く</span>
+      <span id="audio-time" style="font-family:'Satoshi',sans-serif;font-size:10px;color:rgba(255,255,255,0.25);">0:00 / 0:00</span>
+    </div>
+    <div id="audio-progress-bar" style="width:100%;height:2px;background:rgba(255,255,255,0.08);border-radius:1px;cursor:pointer;position:relative;">
+      <div id="audio-progress" style="height:100%;background:var(--accent);border-radius:1px;width:0%;transition:width 0.1s linear;"></div>
+    </div>
+  </div>
+  <button id="audio-close" style="background:none;border:none;color:rgba(255,255,255,0.25);cursor:pointer;padding:4px;flex-shrink:0;">
+    <svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+  </button>
+</div>
+<script>
+(function(){
+  var a=new Audio('${vehicle.audioUrl}');
+  var bar=document.getElementById('audio-bar'),trigger=document.getElementById('audio-trigger');
+  var toggle=document.getElementById('audio-toggle'),playI=document.getElementById('play-icon'),pauseI=document.getElementById('pause-icon');
+  var prog=document.getElementById('audio-progress'),progBar=document.getElementById('audio-progress-bar'),timeD=document.getElementById('audio-time');
+  function fmt(s){var m=Math.floor(s/60),sec=Math.floor(s%60);return m+':'+(sec<10?'0':'')+sec;}
+  function show(){bar.style.transform='translateY(0)';trigger.style.display='none';}
+  function hide(){bar.style.transform='translateY(100%)';trigger.style.display='flex';a.pause();playI.style.display='block';pauseI.style.display='none';}
+  trigger.onclick=function(){show();a.play();playI.style.display='none';pauseI.style.display='block';};
+  toggle.onclick=function(){if(a.paused){a.play();playI.style.display='none';pauseI.style.display='block';}else{a.pause();playI.style.display='block';pauseI.style.display='none';}};
+  document.getElementById('audio-close').onclick=hide;
+  a.ontimeupdate=function(){var p=(a.currentTime/a.duration)*100;prog.style.width=p+'%';timeD.textContent=fmt(a.currentTime)+' / '+fmt(a.duration);};
+  a.onended=function(){playI.style.display='block';pauseI.style.display='none';prog.style.width='0%';};
+  progBar.onclick=function(e){var r=progBar.getBoundingClientRect();a.currentTime=((e.clientX-r.left)/r.width)*a.duration;};
+})();
+</script>
+` : ''}
 </body>
 </html>`
 }

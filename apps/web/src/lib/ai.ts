@@ -71,7 +71,8 @@ ${basicInfo.tagline ? `\n一行コピー指定: ${basicInfo.tagline}` : ''}
   "pullQuote2": "（20〜40文字、任意）",
   "igCaption": "（Instagram投稿文。300文字以内。改行OK）",
   "igHashtags": "（ハッシュタグ10〜15個）",
-  "tweetText": "（140文字以内のツイート文）"
+  "tweetText": "（140文字以内のツイート文）",
+  "narrationText": "（音声読み上げ用テキスト。記事全体を1つの連続したナレーションとして構成する。以下のElevenLabs v3オーディオタグを適切に挿入すること：[calm]落ち着いたトーン（本文ベース）、[whispers]囁き（五感の繊細な描写）、[confident]自信のあるトーン（プルクォート・決め台詞）、[slow pace]ゆっくり（冒頭・重要フレーズ）、[pause Xs]間（セクション間に1〜2秒）。冒頭は[deep, authoritative]＋[pause 1.5s]で車名から始め、セクション間に[pause 1.5s]を入れ、プルクォートは[confident]で読む。1500文字程度）"
 }
 `
 

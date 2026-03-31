@@ -4,6 +4,8 @@ import Anthropic from '@anthropic-ai/sdk'
 
 type Env = {
   ANTHROPIC_API_KEY: string
+  ELEVENLABS_API_KEY: string
+  ELEVENLABS_VOICE_ID: string
   ALLOWED_ORIGIN: string
   IMAGES: R2Bucket
 }
@@ -260,6 +262,52 @@ async function fetchWikiContext(carName: string): Promise<string> {
     return ''
   }
 }
+
+// ── TTS音声生成（ElevenLabs Eleven v3）──
+app.post('/api/tts', async (c) => {
+  const { text, slug } = await c.req.json<{ text: string; slug: string }>()
+  if (!text || !slug) return c.json({ error: 'text and slug required' }, 400)
+  if (!c.env.ELEVENLABS_API_KEY || !c.env.ELEVENLABS_VOICE_ID) {
+    return c.json({ error: 'ElevenLabs not configured' }, 500)
+  }
+
+  try {
+    const response = await fetch(
+      `https://api.elevenlabs.io/v1/text-to-speech/${c.env.ELEVENLABS_VOICE_ID}`,
+      {
+        method: 'POST',
+        headers: {
+          'xi-api-key': c.env.ELEVENLABS_API_KEY,
+          'Content-Type': 'application/json',
+          'Accept': 'audio/mpeg',
+        },
+        body: JSON.stringify({
+          text,
+          model_id: 'eleven_v3',
+          language_code: 'ja',
+          voice_settings: { stability: 0.6, similarity_boost: 0.8, style: 0.4 },
+        }),
+      }
+    )
+    if (!response.ok) {
+      const err = await response.text()
+      console.error('ElevenLabs error:', err)
+      return c.json({ error: `ElevenLabs API error: ${response.status}` }, 502)
+    }
+
+    const audioBuffer = await response.arrayBuffer()
+    const key = `audio/${slug}.mp3`
+    await c.env.IMAGES.put(key, audioBuffer, {
+      httpMetadata: { contentType: 'audio/mpeg' },
+    })
+
+    const audioUrl = `https://hitoplp-api.hitopcorp.workers.dev/api/image/${key}`
+    return c.json({ audioUrl })
+  } catch (e) {
+    console.error('TTS error:', e)
+    return c.json({ error: 'TTS generation failed' }, 500)
+  }
+})
 
 // ── AI記事生成 ──
 app.post('/api/generate', async (c) => {

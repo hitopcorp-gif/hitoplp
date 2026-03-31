@@ -65,6 +65,7 @@ export interface GeneratedContent {
   igCaption: string
   igHashtags: string
   tweetText: string
+  narrationText?: string
 }
 
 export interface Vehicle {
@@ -76,6 +77,7 @@ export interface Vehicle {
   photos: CarPhoto[]
   generatedContent?: GeneratedContent
   detailPhotoUrls?: [string, string, string, string]
+  audioUrl?: string
   status: 'draft' | 'published' | 'sold'
   publishedAt?: Date
   soldAt?: Date

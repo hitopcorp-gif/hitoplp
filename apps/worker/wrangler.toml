@@ -10,5 +10,7 @@ ALLOWED_ORIGIN = "*"
 binding = "IMAGES"
 bucket_name = "hitoplp-images"
 
-# Secrets (set via: wrangler secret put ANTHROPIC_API_KEY)
+# Secrets (set via: wrangler secret put <KEY_NAME>)
 # ANTHROPIC_API_KEY
+# ELEVENLABS_API_KEY
+# ELEVENLABS_VOICE_ID

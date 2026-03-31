@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { LpPreview } from '@/components/LpPreview'
 import { generateContent } from '@/lib/ai'
 import { generateLpHtml } from '@/lib/lp-generator'
+import { generateNarration } from '@/lib/tts'
 import {
   ChevronLeft, Eye, Globe, RotateCcw, BadgeCheck, Edit, Sparkles, Check, Trash2
 } from 'lucide-react'
@@ -68,17 +69,34 @@ export function VehicleDetailPage() {
       const API_BASE = import.meta.env.VITE_API_BASE_URL
       if (nextStatus === 'published' && vehicle.generatedContent) {
         const content = editedContent ?? vehicle.generatedContent
-        const html = generateLpHtml(
-          { ...vehicle, detailPhotoUrls: detailPhotoUrls ?? vehicle.detailPhotoUrls },
-          content,
-          false
-        )
+
+        // TTS音声生成（並行・失敗しても公開は止めない）
+        let audioUrl = vehicle.audioUrl ?? ''
+        const ttsPromise = content.narrationText
+          ? generateNarration(content.narrationText, vehicle.slug)
+              .then(url => { audioUrl = url })
+              .catch(e => console.error('TTS skipped:', e))
+          : Promise.resolve()
+
+        const vehicleWithAudio = { ...vehicle, detailPhotoUrls: detailPhotoUrls ?? vehicle.detailPhotoUrls, audioUrl }
+
+        // TTS完了を待ってからHTML生成（audioUrlをHTMLに埋め込むため）
+        await ttsPromise
+        vehicleWithAudio.audioUrl = audioUrl
+
+        const html = generateLpHtml(vehicleWithAudio, content, false)
         const uploadRes = await fetch(`${API_BASE}/api/upload/lp/${vehicle.slug}.html`, {
           method: 'PUT',
           headers: { 'content-type': 'text/html; charset=utf-8' },
           body: html,
         })
         if (!uploadRes.ok) throw new Error(`R2 upload failed: ${uploadRes.status}`)
+
+        // audioUrlをFirestoreに保存
+        if (audioUrl) {
+          await updateDoc(doc(db, 'vehicles', id), { audioUrl })
+          setVehicle((prev) => prev ? { ...prev, audioUrl } : prev)
+        }
 
         await updateLpIndex(API_BASE, vehicle.slug, {
           slug: vehicle.slug,
