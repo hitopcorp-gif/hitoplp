@@ -11,7 +11,7 @@ export function LpPreview({ vehicle, content }: Props) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
 
   useEffect(() => {
-    const html = generateLpHtml(vehicle, content, true)
+    const html = generateLpHtml(vehicle, content, false)
     const iframe = iframeRef.current
     if (!iframe) return
     const doc = iframe.contentDocument
@@ -41,7 +41,7 @@ export function LpPreview({ vehicle, content }: Props) {
         title="LP Preview"
         className="w-full"
         style={{ height: '80vh', border: 'none', background: '#0A0A0A' }}
-        sandbox="allow-same-origin"
+        sandbox="allow-same-origin allow-scripts"
       />
     </div>
   )

@@ -23,57 +23,51 @@ export async function generateContent({
   const situationPrompt = SITUATION_PROMPTS[situation]
 
   const userPrompt = `
-この1台について記事を書いてください。
-
-━━ この個体のデータ ━━
+━━ 車両データ ━━
 車名: ${basicInfo.name}
 年式: ${basicInfo.year}年
 走行距離: ${basicInfo.mileage}
-修復歴: ${basicInfo.hasRepairHistory ? 'あり' : 'なし（修復歴のないきれいな1台）'}
+修復歴: ${basicInfo.hasRepairHistory ? 'あり' : 'なし'}
 車検: ${basicInfo.shaken}
 ミッション: ${basicInfo.transmission}
 駆動方式: ${basicInfo.drive}
 エンジン: ${basicInfo.engine}${basicInfo.maxPower ? `\n最高出力: ${basicInfo.maxPower}` : ''}${basicInfo.maxTorque ? `\n最大トルク: ${basicInfo.maxTorque}` : ''}
-価格: ${basicInfo.isAsk ? 'ASK（商談形式）' : basicInfo.price}
+価格: ${basicInfo.isAsk ? 'ASK' : basicInfo.price}
 
-━━ HI-TOPカスタム内容（★最重要・必ず文章の核に）━━
+━━ HI-TOPカスタム内容 ━━
 ${basicInfo.customContent}
 
-━━ 世界観・シチュエーション ━━
+━━ シチュエーション ━━
 ${situationConfig.label}：${situationPrompt}
-${basicInfo.tagline ? `\n★一行コピー指定（必ずそのまま使用）: ${basicInfo.tagline}` : ''}
-
-━━ 注意 ━━
-・メーカーの歴史・ブランドの物語は書かない
-・HI-TOPのカスタム内容を具体的に文章に織り込む
-・この個体のコンディション（走行距離・修復歴）にも触れる
-・カラーテンプレート: ${colorTemplate}
+${basicInfo.tagline ? `\n一行コピー指定: ${basicInfo.tagline}` : ''}
+カラーテンプレート: ${colorTemplate}
 
 以下のJSON形式で出力してください（他のテキスト不要）：
 {
+  "nameJa": "（車名の日本語表記。例: ランドローバー ディフェンダー 110 / ポルシェ 911 カレラ）",
   "subtitle": "（15〜25文字。車の本質を詩的に）",
   "englishCopy": "（2〜4 words）",
   "section1": {
     "title": "（英語1word）",
     "subtitle": "（日本語10〜20文字）",
-    "story": "（250〜350文字。五感描写、体験ベース）"
+    "story": "（300〜400文字。このモデル固有の設計哲学・エンジニアリングの豆知識・歴史的背景を入れつつ、HI-TOPカスタムと五感描写で結びつける）"
   },
   "section2": {
     "title": "（英語1word）",
-    "subtitle": "（日本語10〜20文字。スペックの数字を自然に）",
-    "story": "（250〜350文字）"
+    "subtitle": "（日本語10〜20文字）",
+    "story": "（300〜400文字。走り・機能・スペックの話をモデル固有の特性と絡めて書く）"
   },
   "section3": {
     "title": "（英語1word）",
     "subtitle": "（日本語10〜20文字）",
     "details": [
-      {"caption": "（10〜20文字）", "description": "（60〜80文字）"},
-      {"caption": "（10〜20文字）", "description": "（60〜80文字）"},
-      {"caption": "（10〜20文字）", "description": "（60〜80文字）"},
-      {"caption": "（10〜20文字）", "description": "（60〜80文字）"}
+      {"caption": "（10〜20文字）", "description": "（70〜90文字。カスタムの技術的な背景や面白い事実を含める）"},
+      {"caption": "（10〜20文字）", "description": "（70〜90文字）"},
+      {"caption": "（10〜20文字）", "description": "（70〜90文字）"},
+      {"caption": "（10〜20文字）", "description": "（70〜90文字）"}
     ]
   },
-  "pullQuote1": "（20〜40文字の印象的な一文）",
+  "pullQuote1": "（20〜40文字。このモデルの本質を突いた、思わず膝を打つ一文）",
   "pullQuote2": "（20〜40文字、任意）",
   "igCaption": "（Instagram投稿文。300文字以内。改行OK）",
   "igHashtags": "（ハッシュタグ10〜15個）",

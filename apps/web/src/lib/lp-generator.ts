@@ -138,12 +138,13 @@ a { color: inherit; text-decoration: none; }
 /* ── NAV ── */
 .nav {
   position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-  padding: 28px clamp(24px, 5vw, 72px);
+  padding: 24px clamp(24px, 5vw, 72px);
   display: flex; justify-content: space-between; align-items: center;
-  mix-blend-mode: difference;
 }
-.nav-logo { font-family: 'Cormorant Garamond', serif; font-size: 14px; letter-spacing: 0.3em; color: #fff; text-transform: uppercase; }
-.nav-tag { font-family: 'Noto Sans JP', sans-serif; font-size: 9px; letter-spacing: 0.4em; color: rgba(255,255,255,0.45); text-transform: uppercase; }
+.nav-brand { display: flex; flex-direction: column; gap: 2px; }
+.nav-logo { font-family: 'Cormorant Garamond', serif; font-size: 16px; letter-spacing: 0.35em; color: #fff; text-transform: uppercase; line-height: 1; mix-blend-mode: difference; }
+.nav-logo-ja { font-family: 'Noto Sans JP', sans-serif; font-size: 8px; letter-spacing: 0.2em; color: rgba(255,255,255,0.35); line-height: 1; mix-blend-mode: difference; }
+.nav-tag { font-family: 'Noto Sans JP', sans-serif; font-size: 8px; letter-spacing: 0.45em; color: rgba(255,255,255,0.3); text-transform: uppercase; mix-blend-mode: difference; }
 
 /* ── HERO ── */
 .hero { position: relative; height: 100vh; min-height: 640px; overflow: hidden; display: flex; align-items: flex-end; }
@@ -175,6 +176,14 @@ a { color: inherit; text-decoration: none; }
 }
 .hero-name-line:nth-child(2) { transition-delay: 0.08s; padding-left: clamp(24px, 4vw, 80px); }
 .hero-name-line:nth-child(3) { transition-delay: 0.16s; }
+.hero-name-ja {
+  font-family: 'Noto Serif JP', serif; font-weight: 200;
+  font-size: clamp(11px, 1.1vw, 14px); color: rgba(245,245,240,0.35);
+  letter-spacing: 0.25em; margin-top: 16px;
+  opacity: ${preview ? '1' : '0'}; transform: ${preview ? 'none' : 'translateY(10px)'};
+  transition: opacity 0.8s var(--ease) 0.4s, transform 0.8s var(--ease) 0.4s;
+}
+.loaded .hero-name-ja { opacity: 1; transform: none; }
 .hero-foot {
   margin-top: 36px; display: flex; align-items: flex-end; justify-content: space-between;
   flex-wrap: wrap; gap: 20px;
@@ -299,7 +308,10 @@ footer { border-top: 1px solid rgba(255,255,255,0.05); padding: 56px 0; }
 <div id="sprog"></div>
 
 <nav class="nav">
-  <span class="nav-logo en">HI-TOP</span>
+  <div class="nav-brand">
+    <span class="nav-logo en">HI-TOP</span>
+    <span class="nav-logo-ja sans">ハイトップコーポレーション</span>
+  </div>
   <span class="nav-tag sans">Selection</span>
 </nav>
 
@@ -315,6 +327,7 @@ footer { border-top: 1px solid rgba(255,255,255,0.05); padding: 56px 0; }
     <h1 class="hero-name en">
       ${titleLines.map((line) => `<span class="hero-name-line">${line}</span>`).join('\n      ')}
     </h1>
+    ${content.nameJa ? `<p class="hero-name-ja">${content.nameJa}</p>` : ''}
     <div class="hero-foot">
       <p class="hero-sub">${content.subtitle}</p>
       <p class="hero-en en">${content.englishCopy}</p>
@@ -438,7 +451,10 @@ ${content.pullQuote2 ? `<div class="pq">
 <footer>
   <div class="w">
     <div class="ft">
-      <p class="ft-logo en">HI-TOP</p>
+      <div>
+        <p class="ft-logo en">HI-TOP</p>
+        <p class="sans" style="font-size:9px;color:var(--text-dim);letter-spacing:0.2em;margin-top:4px;">ハイトップコーポレーション</p>
+      </div>
       <div class="ft-info">
         <p class="sans">HI-TOP Corporation</p>
         <p class="sans">福岡県北九州市 ｜ hi-top.net</p>

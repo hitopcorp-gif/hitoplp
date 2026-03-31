@@ -39,6 +39,7 @@ export interface CarBasicInfo {
 }
 
 export interface GeneratedContent {
+  nameJa?: string
   subtitle: string
   englishCopy: string
   section1: {
