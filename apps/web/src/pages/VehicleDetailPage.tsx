@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { LpPreview } from '@/components/LpPreview'
 import { generateContent } from '@/lib/ai'
 import {
-  ChevronLeft, Eye, Globe, RotateCcw, BadgeCheck, Edit, Sparkles
+  ChevronLeft, Eye, Globe, RotateCcw, BadgeCheck, Edit, Sparkles, Check
 } from 'lucide-react'
 
 export function VehicleDetailPage() {
@@ -19,6 +19,7 @@ export function VehicleDetailPage() {
   const [publishing, setPublishing] = useState(false)
   const [regenerating, setRegenerating] = useState(false)
   const [editedContent, setEditedContent] = useState<GeneratedContent | null>(null)
+  const [detailPhotoUrls, setDetailPhotoUrls] = useState<[string, string, string, string] | undefined>(undefined)
 
   useEffect(() => {
     if (!id) return
@@ -27,6 +28,7 @@ export function VehicleDetailPage() {
         const v = { id: snap.id, ...snap.data() } as Vehicle
         setVehicle(v)
         if (v.generatedContent) setEditedContent(v.generatedContent)
+        if (v.detailPhotoUrls) setDetailPhotoUrls(v.detailPhotoUrls)
       }
       setLoading(false)
     })
@@ -78,9 +80,10 @@ export function VehicleDetailPage() {
     if (!id || !editedContent) return
     await updateDoc(doc(db, 'vehicles', id), {
       generatedContent: editedContent,
+      ...(detailPhotoUrls ? { detailPhotoUrls } : {}),
       updatedAt: serverTimestamp(),
     })
-    setVehicle((prev) => prev ? { ...prev, generatedContent: editedContent } : prev)
+    setVehicle((prev) => prev ? { ...prev, generatedContent: editedContent, detailPhotoUrls } : prev)
   }
 
   if (loading) {
@@ -173,7 +176,10 @@ export function VehicleDetailPage() {
               </Button>
             </div>
             {vehicle.generatedContent ? (
-              <LpPreview vehicle={vehicle} content={editedContent ?? vehicle.generatedContent} />
+              <LpPreview
+                vehicle={{ ...vehicle, detailPhotoUrls: detailPhotoUrls ?? vehicle.detailPhotoUrls }}
+                content={editedContent ?? vehicle.generatedContent}
+              />
             ) : (
               <div className="border border-white/10 p-16 text-center">
                 <p className="text-white/30 text-sm mb-6">コンテンツがまだ生成されていません</p>
@@ -191,6 +197,9 @@ export function VehicleDetailPage() {
             content={editedContent}
             onChange={setEditedContent}
             onSave={handleSaveEdit}
+            photos={vehicle.photos}
+            detailPhotoUrls={detailPhotoUrls}
+            onDetailPhotoUrlsChange={setDetailPhotoUrls}
           />
         )}
 
@@ -206,13 +215,59 @@ function EditTab({
   content,
   onChange,
   onSave,
+  photos,
+  detailPhotoUrls,
+  onDetailPhotoUrlsChange,
 }: {
   content: GeneratedContent
   onChange: (c: GeneratedContent) => void
   onSave: () => void
+  photos: Vehicle['photos']
+  detailPhotoUrls: [string, string, string, string] | undefined
+  onDetailPhotoUrlsChange: (urls: [string, string, string, string]) => void
 }) {
+  // Build default slots from photos if not set
+  const allUrls = photos.map((p) => p.url)
+  const slots: [string, string, string, string] = detailPhotoUrls ?? ['', '', '', '']
+
   return (
     <div className="max-w-2xl space-y-8">
+      {/* Detail photo slots */}
+      <div className="space-y-4">
+        <p className="text-xs tracking-widest text-white/40 uppercase">ディテール写真の割り当て</p>
+        <div className="grid grid-cols-2 gap-4">
+          {content.section3.details.slice(0, 4).map((detail, i) => (
+            <div key={i} className="space-y-2">
+              <p className="text-xs text-brand-gold">{detail.caption}</p>
+              <p className="text-xs text-white/30 leading-relaxed">{detail.description}</p>
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {allUrls.map((url) => (
+                  <button
+                    key={url}
+                    type="button"
+                    onClick={() => {
+                      const next: [string, string, string, string] = [...slots] as [string, string, string, string]
+                      next[i] = url
+                      onDetailPhotoUrlsChange(next)
+                    }}
+                    className={`relative w-14 h-14 overflow-hidden border-2 transition-all ${
+                      slots[i] === url ? 'border-brand-gold' : 'border-white/10 hover:border-white/30'
+                    }`}
+                  >
+                    <img src={url} alt="" className="w-full h-full object-cover" />
+                    {slots[i] === url && (
+                      <div className="absolute inset-0 bg-brand-gold/30 flex items-center justify-center">
+                        <Check className="w-3 h-3 text-white" />
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <hr className="border-white/10" />
       <EditField
         label="サブタイトル"
         value={content.subtitle}

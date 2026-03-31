@@ -35,7 +35,7 @@ export function generateLpHtml(vehicle: Vehicle, content: GeneratedContent, prev
   const sec2Photo = interiorPhotos[0]?.url ?? exteriorPhotos[2]?.url ?? ''
   const fullBreed2 = exteriorPhotos[2]?.url ?? interiorPhotos[1]?.url ?? ''
   const fullBreed3 = interiorPhotos[1]?.url ?? ''
-  const detailGrid = [
+  const detailGrid: string[] = vehicle.detailPhotoUrls ?? [
     detailPhotos[0]?.url ?? interiorPhotos[0]?.url ?? '',
     detailPhotos[1]?.url ?? interiorPhotos[1]?.url ?? '',
     detailPhotos[2]?.url ?? exteriorPhotos[0]?.url ?? '',
