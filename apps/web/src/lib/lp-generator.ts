@@ -95,7 +95,7 @@ export function generateLpHtml(vehicle: Vehicle, content: GeneratedContent, prev
 <meta property="og:description" content="${content.subtitle}">
 ${heroUrl ? `<meta property="og:image" content="${heroUrl}">` : ''}
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Noto+Serif+JP:wght@200;300;400&family=Noto+Sans+JP:wght@300;400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;1,400&family=Cormorant+Garamond:ital,wght@0,300;1,300;1,400&family=Noto+Serif+JP:wght@200;300;400&family=Noto+Sans+JP:wght@300;400&display=swap" rel="stylesheet">
 <style>
 /* ── RESET ── */
 :root {
@@ -153,7 +153,7 @@ a { color: inherit; text-decoration: none; }
 .nav-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
 .nav-shield { width: 40px; height: 40px; object-fit: contain; }
 .nav-text { display: flex; flex-direction: column; gap: 2px; }
-.nav-logo { font-family: 'Cormorant Garamond', serif; font-size: 14px; letter-spacing: 0.35em; color: #fff; text-transform: uppercase; line-height: 1; mix-blend-mode: difference; }
+.nav-logo { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 13px; letter-spacing: 0.12em; color: #fff; text-transform: uppercase; line-height: 1; mix-blend-mode: difference; }
 .nav-logo-ja { font-family: 'Noto Sans JP', sans-serif; font-size: 7px; letter-spacing: 0.2em; color: rgba(255,255,255,0.35); line-height: 1; mix-blend-mode: difference; }
 .nav-tag { font-family: 'Noto Sans JP', sans-serif; font-size: 8px; letter-spacing: 0.45em; color: rgba(255,255,255,0.3); text-transform: uppercase; mix-blend-mode: difference; }
 
@@ -175,9 +175,9 @@ a { color: inherit; text-decoration: none; }
   transition: opacity 0.7s var(--ease) 0.1s, transform 0.7s var(--ease) 0.1s;
 }
 .hero-name {
-  font-family: 'Cormorant Garamond', serif; font-weight: 300;
-  font-size: clamp(38px, 7.5vw, 120px);
-  line-height: 0.95; letter-spacing: -0.01em;
+  font-family: 'Playfair Display', serif; font-weight: 800;
+  font-size: clamp(32px, 6.5vw, 100px);
+  line-height: 1.0; letter-spacing: -0.02em;
   color: #fff; overflow: hidden;
 }
 .hero-name-line {
@@ -236,8 +236,8 @@ a { color: inherit; text-decoration: none; }
 /* ── SECTION COMMON ── */
 .sec { padding: clamp(100px, 14vh, 160px) 0; position: relative; }
 .s-eyebrow { font-family: 'Noto Sans JP', sans-serif; font-size: 9px; letter-spacing: 0.5em; color: var(--accent); text-transform: uppercase; margin-bottom: 18px; }
-.s-title { font-family: 'Cormorant Garamond', serif; font-weight: 300; font-size: clamp(44px, 6vw, 88px); line-height: 0.95; color: var(--text); margin-bottom: 36px; }
-.s-ghost { font-family: 'Cormorant Garamond', serif; font-size: clamp(80px, 14vw, 180px); font-weight: 300; color: rgba(255,255,255,0.03); position: absolute; right: clamp(24px, 5vw, 80px); top: clamp(80px, 10vh, 120px); line-height: 1; pointer-events: none; user-select: none; }
+.s-title { font-family: 'Playfair Display', serif; font-weight: 700; font-size: clamp(38px, 5vw, 76px); line-height: 1.05; color: var(--text); margin-bottom: 36px; }
+.s-ghost { font-family: 'Playfair Display', serif; font-size: clamp(60px, 11vw, 150px); font-weight: 700; color: rgba(255,255,255,0.03); position: absolute; right: clamp(24px, 5vw, 80px); top: clamp(80px, 10vh, 120px); line-height: 1; pointer-events: none; user-select: none; }
 .s-body p { font-size: clamp(14px, 1.1vw, 16px); color: var(--text-dim); line-height: 2.1; }
 .s-body p + p { margin-top: 1.1em; }
 
@@ -268,12 +268,12 @@ a { color: inherit; text-decoration: none; }
 .di-img img { width: 100%; height: clamp(240px, 33vw, 420px); object-fit: cover; transition: transform 0.9s var(--ease); }
 .di:hover .di-img img { transform: scale(1.06); }
 .di-n { font-family: 'Cormorant Garamond', serif; font-size: 10px; letter-spacing: 0.4em; color: var(--accent); margin: 22px 0 8px; }
-.di-cap { font-family: 'Noto Serif JP', serif; font-weight: 400; font-size: 15px; color: var(--text); margin-bottom: 10px; }
+.di-cap { font-family: 'Noto Serif JP', serif; font-weight: 300; font-size: 15px; color: var(--text); margin-bottom: 10px; }
 .di-desc { font-family: 'Noto Sans JP', sans-serif; font-size: 12px; color: var(--text-dim); line-height: 1.9; }
 
 /* ── SPECS ── */
 .sp-sec { padding: clamp(80px, 12vh, 140px) 0; border-top: 1px solid rgba(255,255,255,0.05); }
-.sp-hed { font-family: 'Cormorant Garamond', serif; font-weight: 300; font-size: clamp(40px, 5vw, 64px); color: var(--text); margin-bottom: clamp(40px, 6vw, 72px); }
+.sp-hed { font-family: 'Playfair Display', serif; font-weight: 700; font-size: clamp(34px, 4vw, 52px); color: var(--text); margin-bottom: clamp(40px, 6vw, 72px); }
 .sp-grid { display: grid; grid-template-columns: 1fr 1fr; }
 .sp-row { display: flex; justify-content: space-between; align-items: baseline; padding: 15px 0; border-bottom: 1px solid rgba(255,255,255,0.045); gap: 16px; }
 .sp-k { font-family: 'Noto Sans JP', sans-serif; font-size: 11px; letter-spacing: 0.12em; color: var(--text-dim); flex-shrink: 0; }
