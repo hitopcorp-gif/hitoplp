@@ -105,10 +105,44 @@ export function generateLpHtml(vehicle: Vehicle, content: GeneratedContent, prev
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>${basicInfo.name} | HI-TOP JOURNAL</title>
-<meta name="description" content="${content.subtitle}">
-<meta property="og:title" content="${basicInfo.name} | HI-TOP CORPORATION">
-<meta property="og:description" content="${content.subtitle}">
-${heroUrl ? `<meta property="og:image" content="${heroUrl}">` : ''}
+<meta name="description" content="${content.seo?.metaDescription ?? content.subtitle}">
+${content.seo?.keywords ? `<meta name="keywords" content="${content.seo.keywords}">` : ''}
+<link rel="canonical" href="https://hitoplp-api.hitopcorp.workers.dev/${vehicle.slug}">
+<meta property="og:type" content="product">
+<meta property="og:title" content="${basicInfo.name} | HI-TOP JOURNAL">
+<meta property="og:description" content="${content.seo?.ogDescription ?? content.subtitle}">
+<meta property="og:url" content="https://hitoplp-api.hitopcorp.workers.dev/${vehicle.slug}">
+<meta property="og:site_name" content="HI-TOP JOURNAL">
+<meta property="og:locale" content="ja_JP">
+${heroUrl ? `<meta property="og:image" content="${heroUrl}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">` : ''}
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="${basicInfo.name} | HI-TOP JOURNAL">
+<meta name="twitter:description" content="${content.seo?.ogDescription ?? content.subtitle}">
+${heroUrl ? `<meta name="twitter:image" content="${heroUrl}">` : ''}
+<script type="application/ld+json">
+${JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "Vehicle",
+  "name": basicInfo.name,
+  "description": content.seo?.metaDescription ?? content.subtitle,
+  "brand": { "@type": "Brand", "name": basicInfo.name.split(' ')[0] },
+  "modelDate": String(basicInfo.year),
+  "mileageFromOdometer": { "@type": "QuantitativeValue", "value": basicInfo.mileage },
+  "vehicleTransmission": basicInfo.transmission,
+  "driveWheelConfiguration": basicInfo.drive,
+  "vehicleEngine": { "@type": "EngineSpecification", "name": basicInfo.engine },
+  ...(heroUrl ? { "image": heroUrl } : {}),
+  "offers": {
+    "@type": "Offer",
+    "priceCurrency": "JPY",
+    ...(basicInfo.isAsk ? { "availability": "https://schema.org/InStock" } : { "price": basicInfo.price.replace(/[^0-9]/g, ''), "availability": "https://schema.org/InStock" }),
+    "seller": { "@type": "Organization", "name": "HI-TOP CORPORATION", "url": "https://hi-top.net" }
+  },
+  "url": `https://hitoplp-api.hitopcorp.workers.dev/${vehicle.slug}`
+})}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://api.fontshare.com/v2/css?f[]=satoshi@900,800,700,400,300&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,300;1,300;1,400&family=Noto+Sans+JP:wght@300;400&display=swap" rel="stylesheet">

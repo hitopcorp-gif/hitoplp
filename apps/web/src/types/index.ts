@@ -66,6 +66,11 @@ export interface GeneratedContent {
   igHashtags: string
   tweetText: string
   narrationText?: string
+  seo?: {
+    metaDescription: string
+    keywords: string
+    ogDescription: string
+  }
 }
 
 export interface Vehicle {
