@@ -17,7 +17,7 @@ app.use('*', async (c, next) => {
 app.get('/health', (c) => c.json({ ok: true }))
 
 // ── 画像アップロード（直接R2へ）──
-app.put('/api/upload/:key', async (c) => {
+app.put('/api/upload/:key{.+}', async (c) => {
   const key = c.req.param('key')
   const contentType = c.req.header('content-type') ?? 'image/jpeg'
   const body = await c.req.arrayBuffer()
@@ -26,12 +26,11 @@ app.put('/api/upload/:key', async (c) => {
     httpMetadata: { contentType },
   })
 
-  const url = `https://hitoplp-images.${c.env.ALLOWED_ORIGIN ? '' : ''}pub.r2.dev/${key}`
   return c.json({ key, url: `/api/image/${key}` })
 })
 
 // ── 画像取得 ──
-app.get('/api/image/:key', async (c) => {
+app.get('/api/image/:key{.+}', async (c) => {
   const key = c.req.param('key')
   const obj = await c.env.IMAGES.get(key)
   if (!obj) return c.notFound()
