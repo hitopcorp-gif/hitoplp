@@ -151,7 +151,8 @@ a { color: inherit; text-decoration: none; }
   display: flex; justify-content: space-between; align-items: center;
 }
 .nav-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
-.nav-shield { width: 40px; height: 40px; object-fit: contain; filter: invert(1); opacity: 0.9; }
+.nav-shield-wrap { width: 40px; height: 40px; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.nav-shield { width: 34px; height: 34px; object-fit: contain; }
 .nav-text { display: flex; flex-direction: column; gap: 2px; }
 .nav-logo { font-family: 'Cormorant Garamond', serif; font-size: 14px; letter-spacing: 0.35em; color: #fff; text-transform: uppercase; line-height: 1; mix-blend-mode: difference; }
 .nav-logo-ja { font-family: 'Noto Sans JP', sans-serif; font-size: 7px; letter-spacing: 0.2em; color: rgba(255,255,255,0.35); line-height: 1; mix-blend-mode: difference; }
@@ -349,7 +350,7 @@ footer { border-top: 1px solid rgba(255,255,255,0.05); padding: 56px 0; }
 
 <nav class="nav">
   <a href="https://hi-top.net" class="nav-brand">
-    <img src="${LOGO_URL}" class="nav-shield" alt="HI-TOP">
+    <div class="nav-shield-wrap"><img src="${LOGO_URL}" class="nav-shield" alt="HI-TOP"></div>
     <div class="nav-text">
       <span class="nav-logo en">HI-TOP</span>
       <span class="nav-logo-ja sans">ハイトップコーポレーション</span>
@@ -504,7 +505,7 @@ ${content.pullQuote2 ? `<div class="pq">
   <div class="w">
     <div class="ft">
       <a href="https://hi-top.net" style="text-decoration:none;display:flex;align-items:center;gap:14px;">
-        <img src="${LOGO_URL}" style="width:48px;height:48px;object-fit:contain;filter:brightness(0) invert(1);opacity:0.6;" alt="HI-TOP">
+        <div style="width:52px;height:52px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><img src="${LOGO_URL}" style="width:44px;height:44px;object-fit:contain;" alt="HI-TOP"></div>
         <div>
           <p class="ft-logo en">HI-TOP</p>
           <p class="sans" style="font-size:9px;color:var(--text-dim);letter-spacing:0.2em;margin-top:4px;">ハイトップコーポレーション</p>
