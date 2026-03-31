@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import { signInWithEmailAndPassword } from 'firebase/auth'
+import { useEffect, useState } from 'react'
+import { signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth'
+import { useNavigate } from 'react-router-dom'
 import { auth } from '@/lib/firebase'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,6 +11,13 @@ export function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    return onAuthStateChanged(auth, (user) => {
+      if (user) navigate('/', { replace: true })
+    })
+  }, [navigate])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -19,7 +27,6 @@ export function LoginPage() {
       await signInWithEmailAndPassword(auth, email, password)
     } catch {
       setError('メールアドレスまたはパスワードが正しくありません')
-    } finally {
       setLoading(false)
     }
   }
