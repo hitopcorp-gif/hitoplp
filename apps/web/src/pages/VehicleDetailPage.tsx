@@ -104,7 +104,7 @@ export function VehicleDetailPage() {
     // 現在のindex取得
     let index: LpIndexEntry[] = []
     try {
-      const res = await fetch(`${apiBase}/api/image/lp/index.json`)
+      const res = await fetch(`${apiBase}/api/image/lp/index.json?t=${Date.now()}`, { cache: 'no-store' })
       if (res.ok) index = await res.json()
     } catch { /* 初回は空 */ }
 
