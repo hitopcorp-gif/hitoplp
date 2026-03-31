@@ -4,7 +4,7 @@ compatibility_date = "2025-03-01"
 compatibility_flags = ["nodejs_compat"]
 
 [vars]
-ALLOWED_ORIGIN = "https://admin.hi-top.net"
+ALLOWED_ORIGIN = "*"
 
 # Secrets (set via: wrangler secret put ANTHROPIC_API_KEY)
 # ANTHROPIC_API_KEY
