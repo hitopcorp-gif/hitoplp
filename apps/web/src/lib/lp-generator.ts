@@ -166,18 +166,18 @@ a { color: inherit; text-decoration: none; }
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
 }
 .hero-grad { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,0.08) 0%, transparent 30%, rgba(0,0,0,0.22) 58%, rgba(0,0,0,0.92) 100%); }
-.hero-content { position: relative; z-index: 2; width: 100%; padding: clamp(48px, 10vh, 100px) clamp(24px, 5vw, 72px); }
+.hero-content { position: relative; z-index: 2; width: 100%; padding: clamp(48px, 8vh, 80px) clamp(24px, 5vw, 72px) clamp(80px, 14vh, 148px); }
 .hero-label {
-  font-family: 'Noto Sans JP', sans-serif; font-size: 9px;
-  letter-spacing: 0.55em; color: var(--accent); text-transform: uppercase;
-  margin-bottom: 44px;
+  font-family: 'Noto Sans JP', sans-serif; font-size: 8px;
+  letter-spacing: 0.8em; color: rgba(255,255,255,0.2); text-transform: uppercase;
+  margin-bottom: 52px;
   opacity: ${preview ? '1' : '0'}; transform: ${preview ? 'none' : 'translateY(8px)'};
   transition: opacity 0.7s var(--ease) 0.1s, transform 0.7s var(--ease) 0.1s;
 }
 .hero-name {
   font-family: 'Playfair Display', serif; font-weight: 700;
-  font-size: clamp(34px, 7vw, 104px);
-  line-height: 0.95; letter-spacing: -0.015em;
+  font-size: clamp(40px, 8vw, 108px);
+  line-height: 0.93; letter-spacing: -0.02em;
   color: #fff; overflow: hidden;
 }
 .hero-name-line {
@@ -185,13 +185,13 @@ a { color: inherit; text-decoration: none; }
   transform: ${preview ? 'none' : 'translateY(105%)'};
   transition: transform 1.0s var(--ease);
 }
-.hero-name-line:nth-child(n+2) { font-style: italic; font-weight: 400; }
-.hero-name-line:nth-child(2) { transition-delay: 0.08s; padding-left: clamp(12px, 2.5vw, 40px); }
-.hero-name-line:nth-child(3) { transition-delay: 0.16s; }
+.hero-name-line:nth-child(n+2) { font-family: 'Cormorant Garamond', serif; font-style: italic; font-weight: 300; font-size: 0.46em; letter-spacing: 0.01em; color: rgba(255,255,255,0.72); }
+.hero-name-line:nth-child(2) { transition-delay: 0.1s; padding-left: clamp(6px, 1.5vw, 24px); }
+.hero-name-line:nth-child(3) { transition-delay: 0.2s; }
 .hero-name-ja {
   font-family: 'Noto Serif JP', serif; font-weight: 200;
-  font-size: clamp(11px, 1.1vw, 14px); color: rgba(245,245,240,0.45);
-  letter-spacing: 0.25em; margin-top: 22px;
+  font-size: clamp(10px, 0.9vw, 12px); color: rgba(245,245,240,0.28);
+  letter-spacing: 0.3em; margin-top: 26px;
   opacity: ${preview ? '1' : '0'}; transform: ${preview ? 'none' : 'translateY(10px)'};
   transition: opacity 0.8s var(--ease) 0.4s, transform 0.8s var(--ease) 0.4s;
 }
@@ -202,14 +202,14 @@ a { color: inherit; text-decoration: none; }
 }
 .hero-sub {
   font-family: 'Noto Serif JP', serif; font-weight: 200;
-  font-size: clamp(13px, 1.2vw, 16px); color: rgba(245,245,240,0.55);
-  letter-spacing: 0.06em; max-width: 380px;
+  font-size: clamp(11px, 0.9vw, 13px); color: rgba(245,245,240,0.38);
+  letter-spacing: 0.08em; max-width: 340px;
   opacity: ${preview ? '1' : '0'}; transform: ${preview ? 'none' : 'translateY(16px)'};
   transition: opacity 0.9s var(--ease) 0.5s, transform 0.9s var(--ease) 0.5s;
 }
 .hero-en {
   font-family: 'Cormorant Garamond', serif; font-style: italic;
-  font-size: clamp(18px, 2.2vw, 28px); color: var(--accent);
+  font-size: clamp(22px, 2.8vw, 38px); color: var(--accent);
   opacity: ${preview ? '1' : '0'};
   transition: opacity 0.9s var(--ease) 0.7s;
 }
@@ -236,9 +236,9 @@ a { color: inherit; text-decoration: none; }
 
 /* ── SECTION COMMON ── */
 .sec { padding: clamp(100px, 14vh, 160px) 0; position: relative; }
-.s-eyebrow { font-family: 'Noto Sans JP', sans-serif; font-size: 9px; letter-spacing: 0.5em; color: var(--accent); text-transform: uppercase; margin-bottom: 18px; }
+.s-eyebrow { font-family: 'Noto Sans JP', sans-serif; font-size: 8px; letter-spacing: 0.65em; color: var(--accent); text-transform: uppercase; margin-bottom: 22px; }
 .s-title { font-family: 'Playfair Display', serif; font-weight: 700; font-size: clamp(38px, 5vw, 76px); line-height: 1.05; color: var(--text); margin-bottom: 36px; }
-.s-ghost { font-family: 'Playfair Display', serif; font-size: clamp(60px, 11vw, 150px); font-weight: 700; color: rgba(255,255,255,0.03); position: absolute; right: clamp(24px, 5vw, 80px); top: clamp(80px, 10vh, 120px); line-height: 1; pointer-events: none; user-select: none; }
+.s-ghost { font-family: 'Playfair Display', serif; font-size: clamp(60px, 11vw, 150px); font-weight: 700; color: transparent; -webkit-text-stroke: 1px rgba(255,255,255,0.07); position: absolute; right: clamp(24px, 5vw, 80px); top: clamp(80px, 10vh, 120px); line-height: 1; pointer-events: none; user-select: none; }
 .s-body p { font-size: clamp(14px, 1.1vw, 16px); color: var(--text-dim); line-height: 2.1; }
 .s-body p + p { margin-top: 1.1em; }
 
@@ -258,8 +258,8 @@ a { color: inherit; text-decoration: none; }
 
 /* ── PULL QUOTE ── */
 .pq { padding: clamp(80px, 12vw, 140px) clamp(24px, 12vw, 200px); text-align: center; position: relative; overflow: hidden; }
-.pq-mark { font-family: 'Cormorant Garamond', serif; font-size: clamp(100px, 20vw, 240px); line-height: 0.8; color: rgba(255,255,255,0.025); position: absolute; top: 0; left: 50%; transform: translateX(-50%); pointer-events: none; user-select: none; }
-.pq p { font-family: 'Cormorant Garamond', serif; font-style: italic; font-weight: 300; font-size: clamp(22px, 3.2vw, 44px); color: var(--text); line-height: 1.55; position: relative; }
+.pq-mark { font-family: 'Cormorant Garamond', serif; font-size: clamp(100px, 20vw, 240px); line-height: 0.8; color: transparent; -webkit-text-stroke: 1px rgba(255,255,255,0.05); position: absolute; top: 0; left: 50%; transform: translateX(-50%); pointer-events: none; user-select: none; }
+.pq p { font-family: 'Cormorant Garamond', serif; font-style: italic; font-weight: 300; font-size: clamp(26px, 4vw, 56px); color: var(--text); line-height: 1.5; position: relative; }
 .pq-rule { width: 48px; height: 1px; background: var(--accent); margin: 36px auto 0; }
 
 /* ── DETAIL GRID ── */
