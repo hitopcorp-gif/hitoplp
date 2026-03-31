@@ -95,7 +95,7 @@ export function generateLpHtml(vehicle: Vehicle, content: GeneratedContent, prev
 <meta property="og:description" content="${content.subtitle}">
 ${heroUrl ? `<meta property="og:image" content="${heroUrl}">` : ''}
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;1,400&family=Cormorant+Garamond:ital,wght@0,300;1,300;1,400&family=Noto+Serif+JP:wght@200;300;400&family=Noto+Sans+JP:wght@300;400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Playfair+Display:ital,wght@0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;1,300;1,400&family=Noto+Serif+JP:wght@200;300;400&family=Noto+Sans+JP:wght@300;400&display=swap" rel="stylesheet">
 <style>
 /* ── RESET ── */
 :root {
@@ -153,7 +153,7 @@ a { color: inherit; text-decoration: none; }
 .nav-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
 .nav-shield { width: 40px; height: 40px; object-fit: contain; }
 .nav-text { display: flex; flex-direction: column; gap: 2px; }
-.nav-logo { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 13px; letter-spacing: 0.12em; color: #fff; text-transform: uppercase; line-height: 1; mix-blend-mode: difference; }
+.nav-logo { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 12px; letter-spacing: 0.18em; color: #fff; text-transform: uppercase; line-height: 1; mix-blend-mode: difference; }
 .nav-logo-ja { font-family: 'Noto Sans JP', sans-serif; font-size: 7px; letter-spacing: 0.2em; color: rgba(255,255,255,0.35); line-height: 1; mix-blend-mode: difference; }
 .nav-tag { font-family: 'Noto Sans JP', sans-serif; font-size: 8px; letter-spacing: 0.45em; color: rgba(255,255,255,0.3); text-transform: uppercase; mix-blend-mode: difference; }
 
@@ -175,9 +175,9 @@ a { color: inherit; text-decoration: none; }
   transition: opacity 0.7s var(--ease) 0.1s, transform 0.7s var(--ease) 0.1s;
 }
 .hero-name {
-  font-family: 'Playfair Display', serif; font-weight: 700;
+  font-family: 'Syne', sans-serif; font-weight: 800;
   font-size: clamp(40px, 8vw, 108px);
-  line-height: 0.93; letter-spacing: -0.02em;
+  line-height: 0.92; letter-spacing: -0.01em;
   color: #fff; overflow: hidden;
 }
 .hero-name-line {
