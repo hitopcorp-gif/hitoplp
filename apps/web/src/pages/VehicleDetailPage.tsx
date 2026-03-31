@@ -221,10 +221,10 @@ export function VehicleDetailPage() {
               href={`https://hitoplp-api.hitopcorp.workers.dev/${vehicle.slug}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-xs text-brand-gold border border-brand-gold/30 hover:border-brand-gold hover:bg-brand-gold/5 px-3 py-1.5 transition-all"
+              title="本番を開く"
+              className="flex items-center justify-center w-8 h-8 border border-brand-gold/40 text-brand-gold hover:bg-brand-gold/10 transition-all"
             >
-              <Globe className="w-3 h-3" />
-              本番を開く
+              <Globe className="w-4 h-4" />
             </a>
           )}
           <Button variant="ghost" size="sm" onClick={handleDelete} className="text-white/20 hover:text-red-400 border-white/10">
@@ -274,6 +274,20 @@ export function VehicleDetailPage() {
       <main className="px-8 py-8">
         {tab === 'preview' && (
           <div className="space-y-6">
+            {vehicle.status === 'published' && (
+              <a
+                href={`https://hitoplp-api.hitopcorp.workers.dev/${vehicle.slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-between px-5 py-3 bg-brand-gold/5 border border-brand-gold/30 hover:border-brand-gold transition-all group"
+              >
+                <div>
+                  <p className="text-[10px] tracking-widest text-brand-gold/60 uppercase mb-0.5">公開中 — 本番URL</p>
+                  <p className="text-sm text-brand-gold font-light">hitoplp-api.hitopcorp.workers.dev/{vehicle.slug}</p>
+                </div>
+                <Globe className="w-4 h-4 text-brand-gold/50 group-hover:text-brand-gold transition-colors" />
+              </a>
+            )}
             <div className="flex items-center justify-between">
               <p className="text-xs text-white/40">LPプレビュー</p>
               <Button
