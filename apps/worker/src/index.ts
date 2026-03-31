@@ -42,6 +42,80 @@ app.get('/api/image/:key{.+}', async (c) => {
   return new Response(obj.body, { headers })
 })
 
+// ── カーセンサー等URLから車両情報スクレイプ ──
+app.post('/api/scrape', async (c) => {
+  const { url } = await c.req.json<{ url: string }>()
+  if (!url) return c.json({ error: 'url required' }, 400)
+
+  let html: string
+  try {
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept-Language': 'ja,en;q=0.9',
+      },
+    })
+    if (!res.ok) return c.json({ error: `fetch failed: ${res.status}` }, 400)
+    html = await res.text()
+  } catch (e) {
+    return c.json({ error: 'URL取得に失敗しました' }, 400)
+  }
+
+  // HTMLタグ除去・圧縮
+  const text = html
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+    .slice(0, 8000)
+
+  const client = new Anthropic({ apiKey: c.env.ANTHROPIC_API_KEY })
+
+  try {
+    const message = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1024,
+      messages: [{
+        role: 'user',
+        content: `以下の中古車販売ページのテキストから車両情報を抽出してください。
+必ずJSON形式のみで返してください。前置き・説明文は不要。
+
+${text}
+
+以下のJSON形式で返してください：
+{
+  "name": "車名フルネーム（英語表記、例: Land Rover Defender 110 X-Dynamic HSE）",
+  "year": 年式（数値、西暦）,
+  "mileage": "走行距離（例: 3.0万km）",
+  "price": "価格（例: ¥9,770,000）。ASKまたは価格応相談の場合はnull",
+  "isAsk": 価格がASK/応相談ならtrue,
+  "shaken": "車検（例: 2026年10月）",
+  "transmission": "AT / MT / CVT / DCT / other のいずれか",
+  "drive": "駆動方式（例: AWD）",
+  "engine": "エンジン（例: 2.0L 直列4気筒 ターボ）",
+  "maxPower": "最高出力（例: 300ps / 5,500rpm）または null",
+  "maxTorque": "最大トルク（例: 400Nm / 2,000rpm）または null",
+  "hasRepairHistory": 修復歴ありならtrue、なしならfalse
+}`,
+      }],
+    })
+
+    const text2 = message.content[0].type === 'text' ? message.content[0].text : ''
+    const jsonMatch = text2.match(/\{[\s\S]*\}/)
+    if (!jsonMatch) return c.json({ error: 'parse failed' }, 500)
+
+    return c.json(JSON.parse(jsonMatch[0]))
+  } catch (e) {
+    console.error('Scrape error:', e)
+    return c.json({ error: 'AI抽出に失敗しました' }, 500)
+  }
+})
+
 // ── AI記事生成 ──
 app.post('/api/generate', async (c) => {
   const { prompt } = await c.req.json<{ prompt: string }>()
