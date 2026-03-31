@@ -116,45 +116,62 @@ ${text}
   }
 })
 
+// ── Wikipedia知識取得ヘルパー ──
+async function fetchWikiContext(carName: string): Promise<string> {
+  try {
+    // 日本語Wikipediaで検索
+    const searchUrl = `https://ja.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(carName)}&srlimit=1&format=json&origin=*`
+    const searchRes = await fetch(searchUrl)
+    const searchData = await searchRes.json() as { query?: { search?: Array<{ title: string }> } }
+    const title = searchData.query?.search?.[0]?.title
+    if (!title) throw new Error('not found')
+
+    const extractUrl = `https://ja.wikipedia.org/w/api.php?action=query&prop=extracts&exintro=true&explaintext=true&titles=${encodeURIComponent(title)}&format=json&origin=*`
+    const extractRes = await fetch(extractUrl)
+    const extractData = await extractRes.json() as { query?: { pages?: Record<string, { extract?: string }> } }
+    const pages = extractData.query?.pages ?? {}
+    const extract = Object.values(pages)[0]?.extract ?? ''
+    return extract.slice(0, 1200)
+  } catch {
+    return ''
+  }
+}
+
 // ── AI記事生成 ──
 app.post('/api/generate', async (c) => {
-  const { prompt } = await c.req.json<{ prompt: string }>()
+  const { prompt, carName } = await c.req.json<{ prompt: string; carName?: string }>()
   if (!prompt) return c.json({ error: 'prompt required' }, 400)
+
+  // Wikipedia から背景知識を取得
+  const wikiContext = carName ? await fetchWikiContext(carName) : ''
 
   const client = new Anthropic({ apiKey: c.env.ANTHROPIC_API_KEY })
 
   const SYSTEM_PROMPT = `あなたはHI-TOP CORPORATIONの専属コピーライター。
 福岡県北九州市の高級輸入車専門店HI-TOPが手がけた、この1台だけの車を紹介する。
 
-【絶対に守るルール】
-メーカーの歴史・ブランドの物語は書かない。
-この個体のカスタム内容・スペック・状態について書く。
-読んだ人が「この車を見に行きたい」と感じる文章を書く。
-
 【HI-TOPについて】
 哲学：「My Passion is One Code」
 北九州市のショールームで、センスとクオリティにこだわり抜いた1台だけを売る。
 HI-TOPカスタムの内容は文章の核心として必ず盛り込む。
 
-【スタイルルール】
+【書き方のルール】
+- メーカーの歴史・モデルの豆知識・設計思想は積極的に使ってよい
+  ただし「歴史の紹介」で終わらせず、必ずこの個体・HI-TOPカスタムに結びつける
+  ×「ディフェンダーは1983年に〜」で終わる → ○「ディフェンダーが持つ〜という本質を、このサテングレーが再定義した」
 - 一文は短く。最長でも50文字
 - 形容詞は1センテンスに1つまで
 - 体言止めを効果的に使う
 - 「あなた」は使わない
 - 乗った時の体験を五感で描写する（視覚・音・振動・匂い・温度）
 - スペックの数字は文中に自然に溶け込ませる
-  ×「最高出力300ps」→ ○「3リッター直6が静かに唸りを上げる」
-  ×「走行距離1.2万km」→ ○「1.2万kmという、まだ序章の距離」
 - カスタム内容は必ず具体的に言及する
-  ○「サテングレーのラッピングは、光の角度で表情が変わる」
-  ○「Vossen 22インチが、このボディバランスを完成させた」
 - 修復歴なしなら「修復歴のない一台」として自信を持って書く
 
 【禁止ワード】
 圧倒的、至高、官能的、ラグジュアリーな、プレミアムな、エクスクルーシブ、
 極上、贅沢、珠玉、唯一無二、最高峰、ワンランク上、大人の〇〇、
 「まさに」「まるで」「〇〇と言っても過言ではない」「特別な体験」「非日常」
-ランドローバーの歴史・BMWの哲学・ポルシェの伝説など（メーカー物語一切禁止）
 
 必ずJSON形式のみで回答。前置き・後書き・説明文は一切不要。`
 
@@ -163,7 +180,12 @@ HI-TOPカスタムの内容は文章の核心として必ず盛り込む。
       model: 'claude-sonnet-4-20250514',
       max_tokens: 4096,
       system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: prompt }],
+      messages: [{
+        role: 'user',
+        content: wikiContext
+          ? `【このモデルの参考知識（Wikipedia）】\n${wikiContext}\n\n━━━━━━━━━━\n\n${prompt}`
+          : prompt,
+      }],
     })
 
     const text = message.content[0].type === 'text' ? message.content[0].text : ''

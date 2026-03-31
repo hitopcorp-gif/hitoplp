@@ -85,7 +85,7 @@ ${basicInfo.tagline ? `\n★一行コピー指定（必ずそのまま使用）:
   const resp = await fetch(`${API_BASE}/api/generate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prompt: userPrompt }),
+    body: JSON.stringify({ prompt: userPrompt, carName: basicInfo.name }),
   })
 
   if (!resp.ok) {
