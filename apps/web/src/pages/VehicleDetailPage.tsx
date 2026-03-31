@@ -6,6 +6,7 @@ import type { Vehicle, GeneratedContent } from '@/types'
 import { Button } from '@/components/ui/button'
 import { LpPreview } from '@/components/LpPreview'
 import { generateContent } from '@/lib/ai'
+import { generateLpHtml } from '@/lib/lp-generator'
 import {
   ChevronLeft, Eye, Globe, RotateCcw, BadgeCheck, Edit, Sparkles, Check, Trash2
 } from 'lucide-react'
@@ -40,12 +41,26 @@ export function VehicleDetailPage() {
   async function handlePublish() {
     if (!id || !vehicle) return
     setPublishing(true)
+    const nextStatus = vehicle.status === 'published' ? 'draft' : 'published'
+
+    // 公開時: LP HTMLをR2にアップロード
+    if (nextStatus === 'published' && vehicle.generatedContent) {
+      const content = editedContent ?? vehicle.generatedContent
+      const html = generateLpHtml({ ...vehicle, detailPhotoUrls: detailPhotoUrls ?? vehicle.detailPhotoUrls }, content, false)
+      const API_BASE = import.meta.env.VITE_API_BASE_URL
+      await fetch(`${API_BASE}/api/upload/lp/${vehicle.slug}.html`, {
+        method: 'PUT',
+        headers: { 'content-type': 'text/html; charset=utf-8' },
+        body: html,
+      })
+    }
+
     await updateDoc(doc(db, 'vehicles', id), {
-      status: vehicle.status === 'published' ? 'draft' : 'published',
+      status: nextStatus,
       publishedAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     })
-    setVehicle((prev) => prev ? { ...prev, status: prev.status === 'published' ? 'draft' : 'published' } : prev)
+    setVehicle((prev) => prev ? { ...prev, status: nextStatus } : prev)
     setPublishing(false)
   }
 

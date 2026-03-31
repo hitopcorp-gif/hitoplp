@@ -16,6 +16,19 @@ app.use('*', async (c, next) => {
 
 app.get('/health', (c) => c.json({ ok: true }))
 
+// ── LP配信（R2から静的HTML） ──
+app.get('/:slug{[a-z0-9-]+}', async (c) => {
+  const slug = c.req.param('slug')
+  const obj = await c.env.IMAGES.get(`lp/${slug}.html`)
+  if (!obj) return c.notFound()
+
+  const headers = new Headers()
+  headers.set('content-type', 'text/html; charset=utf-8')
+  headers.set('cache-control', 'public, max-age=300, stale-while-revalidate=3600')
+
+  return new Response(obj.body, { headers })
+})
+
 // ── 画像アップロード（直接R2へ）──
 app.put('/api/upload/:key{.+}', async (c) => {
   const key = c.req.param('key')
