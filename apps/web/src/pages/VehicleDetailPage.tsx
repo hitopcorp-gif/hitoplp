@@ -196,6 +196,17 @@ export function VehicleDetailPage() {
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
+          {vehicle.status === 'published' && (
+            <a
+              href={`https://hitoplp-api.hitopcorp.workers.dev/${vehicle.slug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs text-brand-gold border border-brand-gold/30 hover:border-brand-gold hover:bg-brand-gold/5 px-3 py-1.5 transition-all"
+            >
+              <Globe className="w-3 h-3" />
+              本番を開く
+            </a>
+          )}
           <Button variant="ghost" size="sm" onClick={handleDelete} className="text-white/20 hover:text-red-400 border-white/10">
             <Trash2 className="w-4 h-4" />
           </Button>
@@ -211,8 +222,7 @@ export function VehicleDetailPage() {
                 onClick={handlePublish}
                 disabled={publishing || !vehicle.generatedContent}
               >
-                <Globe className="w-4 h-4" />
-                {vehicle.status === 'published' ? '非公開にする' : '公開する'}
+                {publishing ? '処理中...' : vehicle.status === 'published' ? '非公開にする' : '公開する'}
               </Button>
             </>
           )}
