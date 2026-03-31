@@ -27,6 +27,7 @@ export function VehicleDetailPage() {
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<'preview' | 'edit' | 'sns'>('preview')
   const [publishing, setPublishing] = useState(false)
+  const [publishError, setPublishError] = useState('')
   const [regenerating, setRegenerating] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
@@ -50,39 +51,53 @@ export function VehicleDetailPage() {
   async function handlePublish() {
     if (!id || !vehicle) return
     setPublishing(true)
+    setPublishError('')
     const nextStatus = vehicle.status === 'published' ? 'draft' : 'published'
-    const API_BASE = import.meta.env.VITE_API_BASE_URL
 
-    if (nextStatus === 'published' && vehicle.generatedContent) {
-      // 1. LP HTMLをR2に保存
-      const content = editedContent ?? vehicle.generatedContent
-      const html = generateLpHtml({ ...vehicle, detailPhotoUrls: detailPhotoUrls ?? vehicle.detailPhotoUrls }, content, false)
-      await fetch(`${API_BASE}/api/upload/lp/${vehicle.slug}.html`, {
-        method: 'PUT',
-        headers: { 'content-type': 'text/html; charset=utf-8' },
-        body: html,
+    try {
+      // 1. Firestoreを先に更新（権威的な状態）
+      await updateDoc(doc(db, 'vehicles', id), {
+        status: nextStatus,
+        publishedAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
       })
-      // 2. index.jsonを更新（追加）
-      await updateLpIndex(API_BASE, vehicle.slug, {
-        slug: vehicle.slug,
-        name: vehicle.basicInfo.name,
-        nameJa: content.nameJa ?? '',
-        year: vehicle.basicInfo.year,
-        price: vehicle.basicInfo.isAsk ? 'ASK' : vehicle.basicInfo.price,
-        heroUrl: vehicle.photos.find(p => p.tag === 'hero')?.url ?? vehicle.photos[0]?.url ?? '',
-      })
-    } else if (nextStatus === 'draft') {
-      // 非公開: index.jsonから削除
-      await updateLpIndex(API_BASE, vehicle.slug, null)
+      // 2. UIを即時更新
+      setVehicle((prev) => prev ? { ...prev, status: nextStatus } : prev)
+
+      // 3. R2アップロード（ベストエフォート）
+      const API_BASE = import.meta.env.VITE_API_BASE_URL
+      if (nextStatus === 'published' && vehicle.generatedContent) {
+        const content = editedContent ?? vehicle.generatedContent
+        const html = generateLpHtml(
+          { ...vehicle, detailPhotoUrls: detailPhotoUrls ?? vehicle.detailPhotoUrls },
+          content,
+          false
+        )
+        const uploadRes = await fetch(`${API_BASE}/api/upload/lp/${vehicle.slug}.html`, {
+          method: 'PUT',
+          headers: { 'content-type': 'text/html; charset=utf-8' },
+          body: html,
+        })
+        if (!uploadRes.ok) throw new Error(`R2 upload failed: ${uploadRes.status}`)
+
+        await updateLpIndex(API_BASE, vehicle.slug, {
+          slug: vehicle.slug,
+          name: vehicle.basicInfo.name,
+          nameJa: content.nameJa ?? '',
+          year: vehicle.basicInfo.year,
+          price: vehicle.basicInfo.isAsk ? 'ASK' : vehicle.basicInfo.price,
+          heroUrl: vehicle.photos.find(p => p.tag === 'hero')?.url ?? vehicle.photos[0]?.url ?? '',
+        })
+      } else if (nextStatus === 'draft') {
+        const API_BASE2 = import.meta.env.VITE_API_BASE_URL
+        await updateLpIndex(API_BASE2, vehicle.slug, null)
+      }
+    } catch (e) {
+      console.error('Publish error:', e)
+      setPublishError(e instanceof Error ? e.message : '公開処理中にエラーが発生しました')
+    } finally {
+      setPublishing(false)
     }
-
-    await updateDoc(doc(db, 'vehicles', id), {
-      status: nextStatus,
-      publishedAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    })
-    setVehicle((prev) => prev ? { ...prev, status: nextStatus } : prev)
-    setPublishing(false)
   }
 
   async function updateLpIndex(apiBase: string, slug: string, entry: LpIndexEntry | null) {
@@ -196,6 +211,11 @@ export function VehicleDetailPage() {
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
+          {publishError && (
+            <span className="text-xs text-red-400 max-w-xs truncate" title={publishError}>
+              ⚠ {publishError}
+            </span>
+          )}
           {vehicle.status === 'published' && (
             <a
               href={`https://hitoplp-api.hitopcorp.workers.dev/${vehicle.slug}`}
