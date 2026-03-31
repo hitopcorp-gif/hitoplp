@@ -151,7 +151,7 @@ a { color: inherit; text-decoration: none; }
   display: flex; justify-content: space-between; align-items: center;
 }
 .nav-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
-.nav-shield { width: 40px; height: 40px; object-fit: contain; filter: brightness(0) invert(1); opacity: 0.9; mix-blend-mode: difference; }
+.nav-shield { width: 40px; height: 40px; object-fit: contain; filter: brightness(0) invert(1); opacity: 0.85; }
 .nav-text { display: flex; flex-direction: column; gap: 2px; }
 .nav-logo { font-family: 'Cormorant Garamond', serif; font-size: 14px; letter-spacing: 0.35em; color: #fff; text-transform: uppercase; line-height: 1; mix-blend-mode: difference; }
 .nav-logo-ja { font-family: 'Noto Sans JP', sans-serif; font-size: 7px; letter-spacing: 0.2em; color: rgba(255,255,255,0.35); line-height: 1; mix-blend-mode: difference; }

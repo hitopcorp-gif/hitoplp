@@ -41,11 +41,16 @@ export function LpPreview({ vehicle, content }: Props) {
           <div className="w-3 h-3 rounded-full bg-white/20" />
           <div className="w-3 h-3 rounded-full bg-white/20" />
         </div>
-        <div className="flex-1 bg-white/5 rounded px-3 py-1">
+        <a
+          href={`https://hitoplp-api.hitopcorp.workers.dev/${vehicle.slug}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex-1 bg-white/5 rounded px-3 py-1 hover:bg-white/10 transition-colors"
+        >
           <span className="text-xs text-white/30">
-            cars.hi-top.net/{vehicle.slug}
+            hitoplp-api.hitopcorp.workers.dev/{vehicle.slug}
           </span>
-        </div>
+        </a>
         {/* Open in browser */}
         <button
           onClick={openInBrowser}
