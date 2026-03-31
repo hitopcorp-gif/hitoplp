@@ -104,7 +104,7 @@ export function generateLpHtml(vehicle: Vehicle, content: GeneratedContent, prev
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>${basicInfo.name} | HI-TOP</title>
+<title>${basicInfo.name} | HI-TOP JOURNAL</title>
 <meta name="description" content="${content.subtitle}">
 <meta property="og:title" content="${basicInfo.name} | HI-TOP CORPORATION">
 <meta property="og:description" content="${content.subtitle}">
@@ -368,7 +368,7 @@ footer { border-top: 1px solid rgba(255,255,255,0.05); padding: 56px 0; }
   <a href="https://hi-top.net" class="nav-brand">
     <img src="${LOGO_URL}" class="nav-shield" alt="HI-TOP">
     <div class="nav-text">
-      <span class="nav-logo en">HI-TOP</span>
+      <span class="nav-logo en">HI-TOP JOURNAL</span>
       <span class="nav-logo-ja sans">ハイトップコーポレーション</span>
     </div>
   </a>
@@ -383,7 +383,7 @@ footer { border-top: 1px solid rgba(255,255,255,0.05); padding: 56px 0; }
   <div class="hero-grain"></div>
   <div class="hero-grad"></div>
   <div class="hero-content">
-    <p class="hero-label sans">HI-TOP Corporation — ${basicInfo.year}</p>
+    <p class="hero-label sans">HI-TOP Journal — ${basicInfo.year}</p>
     <h1 class="hero-name en">
       ${titleLines.map((line) => `<span class="hero-name-line">${line}</span>`).join('\n      ')}
     </h1>

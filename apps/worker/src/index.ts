@@ -41,7 +41,7 @@ app.get('/', async (c) => {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HI-TOP CORPORATION — Selection</title>
+<title>HI-TOP JOURNAL — Selection</title>
 <meta name="description" content="HI-TOP CORPORATIONが選び抜いた一台。福岡・北九州。">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://api.fontshare.com/v2/css?f[]=satoshi@700,400,300&display=swap" rel="stylesheet">
@@ -102,7 +102,7 @@ footer p{font-family:'Satoshi',sans-serif;font-weight:300;font-size:10px;color:r
   <a href="https://hi-top.net" class="nav-brand">
     <img src="https://hitoplp-api.hitopcorp.workers.dev/api/image/assets/logo.png" class="nav-shield" alt="HI-TOP">
     <div class="nav-text">
-      <span class="nav-logo en">HI-TOP</span>
+      <span class="nav-logo en">HI-TOP JOURNAL</span>
       <span class="nav-logo-ja sans">ハイトップコーポレーション</span>
     </div>
   </a>
