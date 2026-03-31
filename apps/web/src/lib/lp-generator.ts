@@ -183,7 +183,7 @@ a { color: inherit; text-decoration: none; }
 .hero-content { position: relative; z-index: 2; width: 100%; padding: clamp(48px, 8vh, 80px) clamp(24px, 5vw, 72px) clamp(80px, 14vh, 148px); }
 .hero-label {
   font-family: 'Noto Sans JP', sans-serif; font-size: 8px;
-  letter-spacing: 0.8em; color: rgba(255,255,255,0.2); text-transform: uppercase;
+  letter-spacing: 0.8em; color: rgba(255,255,255,0.55); text-transform: uppercase;
   margin-bottom: 52px;
   opacity: ${preview ? '1' : '0'}; transform: ${preview ? 'none' : 'translateY(8px)'};
   transition: opacity 0.7s var(--ease) 0.1s, transform 0.7s var(--ease) 0.1s;
@@ -199,12 +199,12 @@ a { color: inherit; text-decoration: none; }
   transform: ${preview ? 'none' : 'translateY(105%)'};
   transition: transform 1.0s var(--ease);
 }
-.hero-name-line:not(:first-child):last-child { font-family: 'Satoshi', sans-serif; font-weight: 300; font-style: normal; font-size: 0.46em; letter-spacing: 0.01em; color: rgba(255,255,255,0.65); }
+.hero-name-line:not(:first-child):last-child { font-family: 'Satoshi', sans-serif; font-weight: 300; font-style: normal; font-size: 0.46em; letter-spacing: 0.01em; color: rgba(255,255,255,0.82); }
 .hero-name-line:nth-child(2) { transition-delay: 0.1s; }
 .hero-name-line:nth-child(3) { transition-delay: 0.2s; }
 .hero-name-ja {
   font-family: 'Shippori Mincho B1', serif; font-weight: 200;
-  font-size: clamp(10px, 0.9vw, 12px); color: rgba(245,245,240,0.28);
+  font-size: clamp(10px, 0.9vw, 12px); color: rgba(255,255,255,0.7);
   letter-spacing: 0.3em; margin-top: 26px;
   opacity: ${preview ? '1' : '0'}; transform: ${preview ? 'none' : 'translateY(10px)'};
   transition: opacity 0.8s var(--ease) 0.4s, transform 0.8s var(--ease) 0.4s;
@@ -216,7 +216,7 @@ a { color: inherit; text-decoration: none; }
 }
 .hero-sub {
   font-family: 'Shippori Mincho B1', serif; font-weight: 200;
-  font-size: clamp(11px, 0.9vw, 13px); color: rgba(245,245,240,0.38);
+  font-size: clamp(11px, 0.9vw, 13px); color: rgba(255,255,255,0.75);
   letter-spacing: 0.08em; max-width: 340px;
   opacity: ${preview ? '1' : '0'}; transform: ${preview ? 'none' : 'translateY(16px)'};
   transition: opacity 0.9s var(--ease) 0.5s, transform 0.9s var(--ease) 0.5s;
