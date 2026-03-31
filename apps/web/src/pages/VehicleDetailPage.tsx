@@ -18,6 +18,9 @@ export function VehicleDetailPage() {
   const [tab, setTab] = useState<'preview' | 'edit' | 'sns'>('preview')
   const [publishing, setPublishing] = useState(false)
   const [regenerating, setRegenerating] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
+  const [saveOk, setSaveOk] = useState(false)
   const [editedContent, setEditedContent] = useState<GeneratedContent | null>(null)
   const [detailPhotoUrls, setDetailPhotoUrls] = useState<[string, string, string, string] | undefined>(undefined)
 
@@ -85,12 +88,23 @@ export function VehicleDetailPage() {
 
   async function handleSaveEdit() {
     if (!id || !editedContent) return
-    await updateDoc(doc(db, 'vehicles', id), {
-      generatedContent: editedContent,
-      ...(detailPhotoUrls ? { detailPhotoUrls } : {}),
-      updatedAt: serverTimestamp(),
-    })
-    setVehicle((prev) => prev ? { ...prev, generatedContent: editedContent, detailPhotoUrls } : prev)
+    setSaving(true)
+    setSaveError('')
+    setSaveOk(false)
+    try {
+      await updateDoc(doc(db, 'vehicles', id), {
+        generatedContent: editedContent,
+        ...(detailPhotoUrls ? { detailPhotoUrls } : {}),
+        updatedAt: serverTimestamp(),
+      })
+      setVehicle((prev) => prev ? { ...prev, generatedContent: editedContent, detailPhotoUrls } : prev)
+      setSaveOk(true)
+      setTimeout(() => setSaveOk(false), 2500)
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : '保存に失敗しました')
+    } finally {
+      setSaving(false)
+    }
   }
 
   if (loading) {
@@ -207,6 +221,9 @@ export function VehicleDetailPage() {
             content={editedContent}
             onChange={setEditedContent}
             onSave={handleSaveEdit}
+            saving={saving}
+            saveError={saveError}
+            saveOk={saveOk}
             photos={vehicle.photos}
             detailPhotoUrls={detailPhotoUrls}
             onDetailPhotoUrlsChange={setDetailPhotoUrls}
@@ -225,6 +242,9 @@ function EditTab({
   content,
   onChange,
   onSave,
+  saving,
+  saveError,
+  saveOk,
   photos,
   detailPhotoUrls,
   onDetailPhotoUrlsChange,
@@ -232,6 +252,9 @@ function EditTab({
   content: GeneratedContent
   onChange: (c: GeneratedContent) => void
   onSave: () => void
+  saving: boolean
+  saveError: string
+  saveOk: boolean
   photos: Vehicle['photos']
   detailPhotoUrls: [string, string, string, string] | undefined
   onDetailPhotoUrlsChange: (urls: [string, string, string, string]) => void
@@ -246,7 +269,7 @@ function EditTab({
       <div className="space-y-4">
         <p className="text-xs tracking-widest text-white/40 uppercase">ディテール写真の割り当て</p>
         <div className="grid grid-cols-2 gap-4">
-          {content.section3.details.slice(0, 4).map((detail, i) => (
+          {(content.section3?.details ?? []).slice(0, 4).map((detail, i) => (
             <div key={i} className="space-y-2">
               <p className="text-xs text-brand-gold">{detail.caption}</p>
               <p className="text-xs text-white/30 leading-relaxed">{detail.description}</p>
@@ -310,7 +333,11 @@ function EditTab({
         value={content.section2.story}
         onChange={(v) => onChange({ ...content, section2: { ...content.section2, story: v } })}
       />
-      <Button onClick={onSave} className="w-full">変更を保存</Button>
+      {saveError && <p className="text-xs text-red-400 border border-red-900/40 bg-red-900/10 px-3 py-2">{saveError}</p>}
+      {saveOk && <p className="text-xs text-brand-gold border border-brand-gold/30 bg-brand-gold/5 px-3 py-2">保存しました</p>}
+      <Button onClick={onSave} disabled={saving} className="w-full">
+        {saving ? '保存中...' : '変更を保存'}
+      </Button>
     </div>
   )
 }
