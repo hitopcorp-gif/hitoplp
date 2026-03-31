@@ -76,7 +76,8 @@ ${colorTemplate}
 }
 `
 
-  const resp = await fetch('/api/generate', {
+  const API_BASE = import.meta.env.VITE_API_BASE_URL
+  const resp = await fetch(`${API_BASE}/api/generate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ prompt: userPrompt }),
