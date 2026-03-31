@@ -51,6 +51,13 @@ export function generateLpHtml(vehicle: Vehicle, content: GeneratedContent, prev
   const sec2Photo = interiorPhotos[0]?.url ?? exteriorPhotos[2]?.url ?? ''
   const fullBreed2 = exteriorPhotos[2]?.url ?? interiorPhotos[1]?.url ?? ''
   const fullBreed3 = interiorPhotos[1]?.url ?? ''
+
+  // Mobile photo strip: all exterior + interior photos (full car, uncropped)
+  const mobileStripPhotos = [
+    ...heroPhotos.slice(1),
+    ...exteriorPhotos,
+    ...interiorPhotos,
+  ].filter(p => p.url).map(p => p.url)
   const detailGrid: string[] = vehicle.detailPhotoUrls ?? [
     detailPhotos[0]?.url ?? interiorPhotos[0]?.url ?? '',
     detailPhotos[1]?.url ?? interiorPhotos[1]?.url ?? '',
@@ -287,12 +294,38 @@ footer { border-top: 1px solid rgba(255,255,255,0.05); padding: 56px 0; }
 .ft-logo { font-family: 'Cormorant Garamond', serif; font-weight: 300; font-size: 18px; letter-spacing: 0.3em; color: var(--text); text-transform: uppercase; }
 .ft-info p { font-family: 'Noto Sans JP', sans-serif; font-size: 10px; color: var(--text-dim); letter-spacing: 0.12em; line-height: 1.9; text-align: right; }
 
+/* ── MOBILE PHOTO STRIP ── */
+.mob-strip { display: none; }
+@media (max-width: 900px) {
+  .mob-strip {
+    display: flex; overflow-x: auto; gap: 8px;
+    padding: 0 20px 0; scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .mob-strip::-webkit-scrollbar { display: none; }
+  .mob-strip-item {
+    flex-shrink: 0; width: 72vw; scroll-snap-align: center;
+    aspect-ratio: 3/4; overflow: hidden; position: relative;
+  }
+  .mob-strip-item img {
+    width: 100%; height: 100%;
+    object-fit: cover; object-position: center center;
+  }
+  .mob-strip-count {
+    position: absolute; bottom: 10px; right: 12px;
+    font-family: 'Noto Sans JP', sans-serif; font-size: 9px;
+    letter-spacing: 0.2em; color: rgba(255,255,255,0.4);
+  }
+}
+
 /* ── RESPONSIVE ── */
 @media (max-width: 900px) {
   body { cursor: auto; }
   #cur, #cur-d { display: none; }
   .two, .two.flip { grid-template-columns: 1fr; }
   .two.flip .ph { order: -1; }
+  .ph img { object-position: center center; }
   .dg { grid-template-columns: 1fr; }
   .sp-grid { grid-template-columns: 1fr; }
   .s-ghost { display: none; }
@@ -341,6 +374,15 @@ footer { border-top: 1px solid rgba(255,255,255,0.05); padding: 56px 0; }
     <span>Scroll</span>
   </div>
 </section>
+
+${mobileStripPhotos.length > 0 ? `
+<!-- MOBILE PHOTO STRIP -->
+<div class="mob-strip" style="padding-top:32px;padding-bottom:32px;">
+  ${mobileStripPhotos.map((url, i) => `<div class="mob-strip-item">
+    <img src="${url}" alt="">
+    <span class="mob-strip-count">${i + 1} / ${mobileStripPhotos.length}</span>
+  </div>`).join('')}
+</div>` : ''}
 
 <!-- SECTION 01 -->
 <section class="sec">
