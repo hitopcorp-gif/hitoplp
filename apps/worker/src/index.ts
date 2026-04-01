@@ -148,7 +148,7 @@ app.get('/:slug{[a-z0-9-]+}', async (c) => {
 
   const headers = new Headers()
   headers.set('content-type', 'text/html; charset=utf-8')
-  headers.set('cache-control', 'public, max-age=300, stale-while-revalidate=3600')
+  headers.set('cache-control', 'no-cache, must-revalidate')
 
   return new Response(obj.body, { headers })
 })
