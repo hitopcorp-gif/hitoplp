@@ -120,17 +120,17 @@ export function generateLpHtml(vehicle: Vehicle, content: GeneratedContent, prev
 <meta name="description" content="${content.seo?.metaDescription ?? content.subtitle}">
 ${content.seo?.keywords ? `<meta name="keywords" content="${content.seo.keywords}">` : ''}
 <link rel="canonical" href="https://hitoplp-api.hitopcorp.workers.dev/${vehicle.slug}">
-<meta property="og:type" content="product">
-<meta property="og:title" content="${basicInfo.name} | HI-TOP JOURNAL">
+<meta property="og:type" content="article">
+<meta property="og:title" content="${basicInfo.name} | HI-TOP CORPORATION">
 <meta property="og:description" content="${content.seo?.ogDescription ?? content.subtitle}">
 <meta property="og:url" content="https://hitoplp-api.hitopcorp.workers.dev/${vehicle.slug}">
-<meta property="og:site_name" content="HI-TOP JOURNAL">
+<meta property="og:site_name" content="HI-TOP CORPORATION">
 <meta property="og:locale" content="ja_JP">
 ${(vehicle.ogpImageUrl || heroUrl) ? `<meta property="og:image" content="${vehicle.ogpImageUrl || heroUrl}">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">` : ''}
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="${basicInfo.name} | HI-TOP JOURNAL">
+<meta name="twitter:title" content="${basicInfo.name} | HI-TOP CORPORATION">
 <meta name="twitter:description" content="${content.seo?.ogDescription ?? content.subtitle}">
 ${(vehicle.ogpImageUrl || heroUrl) ? `<meta name="twitter:image" content="${vehicle.ogpImageUrl || heroUrl}">` : ''}
 <script type="application/ld+json">
@@ -590,24 +590,18 @@ ${content.pullQuote2 ? `<div class="pq">
   <div class="w">
 ${vehicle.status === 'sold' ? `
     <div class="cta-vert ${R}"></div>
-    <p class="cta-copy ${R}" style="color:var(--text-dim);">この車は売約済みです</p>
-    <p class="sans ${R}" style="font-size:12px;color:var(--text-dim);opacity:0.6;margin-top:8px;">
-      他の在庫車はこちらからご覧いただけます
+    <p style="font-family:'Noto Sans JP',sans-serif;font-size:13px;letter-spacing:0.1em;color:rgba(255,255,255,0.35);text-align:center;" class="${R}">
+      この車は売約済みです
     </p>
-    <div class="cta-btns" style="margin-top:24px;">
-      <a href="https://hitoplp-api.hitopcorp.workers.dev/" class="cta-btn ${R}">
-        在庫一覧を見る
-      </a>
-    </div>
 ` : `
     <div class="cta-vert ${R}"></div>
     <p class="cta-copy ${R}">この車の話を、聞いてみる</p>
     <div class="cta-btns">
-      <a href="tel:+81930000000" class="cta-btn pri ${R}">
+      <a href="tel:0936639365" class="cta-btn pri ${R}">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 11a19.79 19.79 0 01-3-8.58A2 2 0 012 2.21h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 9.91a16 16 0 006.18 6.18l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
         電話で問い合わせ
       </a>
-      <a href="https://lin.ee/hi-top" class="cta-btn ${R} d1">
+      <a href="https://lin.ee/uK3VdVrj" target="_blank" rel="noopener" class="cta-btn ${R} d1">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 5.92 2 10.76c0 3.62 2.32 6.77 5.81 8.5L7 22l3.13-1.67c.6.16 1.23.25 1.87.25 5.52 0 10-3.92 10-8.82C22 5.92 17.52 2 12 2z"/></svg>
         LINE で問い合わせ
       </a>
@@ -618,24 +612,29 @@ ${vehicle.status === 'sold' ? `
 
 <!-- Share + Follow -->
 <div style="text-align:center;padding:40px 0 20px;">
-  <div style="display:flex;justify-content:center;gap:16px;margin-bottom:32px;">
+  <div style="display:flex;justify-content:center;gap:16px;flex-wrap:wrap;margin-bottom:32px;">
     <a href="https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(`https://hitoplp-api.hitopcorp.workers.dev/${vehicle.slug}`)}"
-       target="_blank"
-       class="cta-btn ${R}" style="font-size:12px;padding:10px 24px;">
+       target="_blank" rel="noopener"
+       style="display:inline-flex;align-items:center;gap:6px;padding:8px 20px;border:1px solid rgba(255,255,255,0.08);border-radius:2px;font-family:'Noto Sans JP',sans-serif;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.3);text-decoration:none;transition:all 0.3s;"
+       onmouseover="this.style.borderColor='rgba(196,162,101,0.3)';this.style.color='rgba(255,255,255,0.5)'"
+       onmouseout="this.style.borderColor='rgba(255,255,255,0.08)';this.style.color='rgba(255,255,255,0.3)'">
       LINEで送る
     </a>
-    <button onclick="navigator.clipboard.writeText('https://hitoplp-api.hitopcorp.workers.dev/${vehicle.slug}');this.textContent='コピー済み';setTimeout(()=>this.textContent='リンクをコピー',2000)"
-       class="cta-btn ${R} d1" style="font-size:12px;padding:10px 24px;cursor:pointer;">
+    <button onclick="navigator.clipboard.writeText('https://hitoplp-api.hitopcorp.workers.dev/${vehicle.slug}');this.textContent='コピーしました';setTimeout(()=>{this.textContent='リンクをコピー'},2000)"
+       style="display:inline-flex;align-items:center;gap:6px;padding:8px 20px;border:1px solid rgba(255,255,255,0.08);border-radius:2px;background:transparent;font-family:'Noto Sans JP',sans-serif;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.3);cursor:pointer;transition:all 0.3s;"
+       onmouseover="this.style.borderColor='rgba(196,162,101,0.3)';this.style.color='rgba(255,255,255,0.5)'"
+       onmouseout="this.style.borderColor='rgba(255,255,255,0.08)';this.style.color='rgba(255,255,255,0.3)'">
       リンクをコピー
     </button>
   </div>
   <a href="https://www.instagram.com/hitop.autotrends/"
-     target="_blank"
-     style="display:inline-flex;align-items:center;gap:8px;font-family:'Noto Sans JP',sans-serif;font-size:11px;letter-spacing:0.15em;color:rgba(255,255,255,0.35);text-decoration:none;transition:color 0.3s;">
+     target="_blank" rel="noopener"
+     style="display:inline-flex;align-items:center;gap:8px;font-family:'Noto Sans JP',sans-serif;font-size:11px;letter-spacing:0.15em;color:rgba(255,255,255,0.35);text-decoration:none;transition:color 0.3s;"
+     onmouseover="this.style.color='#C4A265'" onmouseout="this.style.color='rgba(255,255,255,0.35)'">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
       <rect x="2" y="2" width="20" height="20" rx="5"/>
       <circle cx="12" cy="12" r="5"/>
-      <circle cx="17.5" cy="6.5" r="1.5"/>
+      <circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/>
     </svg>
     HI-TOPの最新入荷をフォロー
   </a>
