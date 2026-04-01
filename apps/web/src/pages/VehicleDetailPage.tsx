@@ -11,6 +11,7 @@ import { generateNarration } from '@/lib/tts'
 import {
   ChevronLeft, Eye, Globe, RotateCcw, BadgeCheck, Edit, Sparkles, Check, Trash2, ChevronDown, Volume2
 } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 
 interface LpIndexEntry {
   slug: string
@@ -28,6 +29,7 @@ export function VehicleDetailPage() {
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<'preview' | 'edit' | 'audio' | 'sns'>('preview')
   const [publishing, setPublishing] = useState(false)
+  const [publishPhase, setPublishPhase] = useState('')
   const [publishError, setPublishError] = useState('')
   const [regenerating, setRegenerating] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -53,6 +55,7 @@ export function VehicleDetailPage() {
     if (!id || !vehicle) return
     setPublishing(true)
     setPublishError('')
+    setPublishPhase('保存中...')
     const nextStatus = vehicle.status === 'published' ? 'draft' : 'published'
 
     try {
@@ -71,6 +74,7 @@ export function VehicleDetailPage() {
         const content = editedContent ?? vehicle.generatedContent
 
         // TTS音声生成（並行・失敗しても公開は止めない）
+        setPublishPhase('音声生成中...')
         let audioUrl = vehicle.audioUrl ?? ''
         const ttsPromise = content.narrationText
           ? generateNarration(content.narrationText, vehicle.slug)
@@ -84,7 +88,9 @@ export function VehicleDetailPage() {
         await ttsPromise
         vehicleWithAudio.audioUrl = audioUrl
 
+        setPublishPhase('LP生成中...')
         const html = generateLpHtml(vehicleWithAudio, content, false)
+        setPublishPhase('アップロード中...')
         const uploadRes = await fetch(`${API_BASE}/api/upload/lp/${vehicle.slug}.html`, {
           method: 'PUT',
           headers: { 'content-type': 'text/html; charset=utf-8' },
@@ -98,6 +104,7 @@ export function VehicleDetailPage() {
           setVehicle((prev) => prev ? { ...prev, audioUrl } : prev)
         }
 
+        setPublishPhase('インデックス更新中...')
         await updateLpIndex(API_BASE, vehicle.slug, {
           slug: vehicle.slug,
           name: vehicle.basicInfo.name,
@@ -115,6 +122,7 @@ export function VehicleDetailPage() {
       setPublishError(e instanceof Error ? e.message : '公開処理中にエラーが発生しました')
     } finally {
       setPublishing(false)
+      setPublishPhase('')
     }
   }
 
@@ -396,6 +404,70 @@ export function VehicleDetailPage() {
           <SnsTab vehicle={vehicle} content={vehicle.generatedContent} />
         )}
       </main>
+
+      {/* Full-screen processing overlay */}
+      <AnimatePresence>
+        {(publishing || regenerating) && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-dark-bg/90 backdrop-blur-sm flex items-center justify-center"
+          >
+            <div className="flex flex-col items-center gap-6">
+              {/* Animated ring */}
+              <div className="relative w-20 h-20">
+                <motion.div
+                  className="absolute inset-0 rounded-full border-2 border-brand-gold/20"
+                />
+                <motion.div
+                  className="absolute inset-0 rounded-full border-2 border-transparent border-t-brand-gold"
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                />
+                <motion.div
+                  className="absolute inset-1 rounded-full border border-transparent border-b-brand-gold/40"
+                  animate={{ rotate: -360 }}
+                  transition={{ duration: 1.8, repeat: Infinity, ease: 'linear' }}
+                />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  {publishing ? (
+                    <Globe className="w-6 h-6 text-brand-gold" />
+                  ) : (
+                    <Sparkles className="w-6 h-6 text-brand-gold" />
+                  )}
+                </div>
+              </div>
+
+              {/* Phase text */}
+              <div className="text-center space-y-2">
+                <motion.p
+                  className="text-sm text-white font-light"
+                  key={publishing ? publishPhase : 'regen'}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.25 }}
+                >
+                  {publishing ? (publishPhase || '処理中...') : 'AIコンテンツ生成中...'}
+                </motion.p>
+                <p className="text-xs text-white/30">しばらくお待ちください</p>
+              </div>
+
+              {/* Pulsing dots */}
+              <div className="flex gap-1.5">
+                {[0, 1, 2].map((i) => (
+                  <motion.div
+                    key={i}
+                    className="w-1.5 h-1.5 rounded-full bg-brand-gold/60"
+                    animate={{ opacity: [0.3, 1, 0.3] }}
+                    transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2 }}
+                  />
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
@@ -769,14 +841,57 @@ function AudioTab({
           </Button>
         </div>
 
+        {/* Audio generation progress */}
+        <AnimatePresence>
+          {regenerating && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="border border-brand-gold/20 bg-brand-gold/5 p-5 flex items-center gap-4">
+                <div className="relative w-10 h-10 shrink-0">
+                  <motion.div
+                    className="absolute inset-0 rounded-full border-2 border-transparent border-t-brand-gold"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Volume2 className="w-4 h-4 text-brand-gold" />
+                  </div>
+                </div>
+                <div className="flex-1 space-y-2">
+                  <p className="text-sm text-white/70">ElevenLabsで音声を生成しています...</p>
+                  <div className="h-0.5 bg-white/10 rounded-full overflow-hidden">
+                    <motion.div
+                      className="h-full bg-brand-gold/60"
+                      initial={{ width: '5%' }}
+                      animate={{ width: ['5%', '60%', '80%', '90%'] }}
+                      transition={{ duration: 25, times: [0, 0.3, 0.7, 1], ease: 'easeOut' }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {regenError && (
           <p className="text-xs text-red-400 border border-red-900/40 bg-red-900/10 px-3 py-2">{regenError}</p>
         )}
-        {regenOk && (
-          <p className="text-xs text-brand-gold border border-brand-gold/30 bg-brand-gold/5 px-3 py-2">
-            音声を再生成しました。公開中のLPは自動的に更新されます。
-          </p>
-        )}
+        <AnimatePresence>
+          {regenOk && (
+            <motion.p
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="text-xs text-brand-gold border border-brand-gold/30 bg-brand-gold/5 px-3 py-2"
+            >
+              音声を再生成しました。公開中のLPは自動的に更新されます。
+            </motion.p>
+          )}
+        </AnimatePresence>
       </div>
 
       <p className="text-xs text-white/20 leading-relaxed">
