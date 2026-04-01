@@ -74,7 +74,7 @@ export async function generateReelVideo(
   onProgress?.('リール動画を生成中（5〜10分）...')
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result = await fal.subscribe('fal-ai/kling-video/v2.5/pro/image-to-video' as any, {
+  const result = await fal.subscribe('fal-ai/kling-video/v3/pro/image-to-video' as any, {
     input: {
       prompt: REEL_PROMPT,
       image_url: verticalImageUrl,
