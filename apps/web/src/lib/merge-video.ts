@@ -58,7 +58,6 @@ export async function mergeVideoAudio(
     '-map', '0:v:0',
     '-map', '1:a:0',
     '-shortest',
-    '-movflags', '+faststart',
     '-y',
     'output.mp4',
   ])
