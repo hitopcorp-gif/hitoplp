@@ -79,18 +79,19 @@ export function Step1BasicInfo({ onNext, defaultValues }: Props) {
         throw new Error(err.error || '取得に失敗しました')
       }
       const data = await res.json() as Partial<CarBasicInfo>
-      if (data.name) setValue('name', data.name)
-      if (data.year) setValue('year', data.year)
-      if (data.mileage) setValue('mileage', data.mileage)
-      if (data.price) setValue('price', data.price)
+      const opts = { shouldValidate: true, shouldDirty: true } as const
+      if (data.name) setValue('name', data.name, opts)
+      if (data.year) setValue('year', data.year, opts)
+      if (data.mileage) setValue('mileage', data.mileage, opts)
+      if (data.price) setValue('price', data.price, opts)
       if (data.isAsk != null) setIsAsk(data.isAsk)
-      if (data.shaken) setValue('shaken', data.shaken)
-      if (data.transmission) setValue('transmission', data.transmission)
-      if (data.drive) setValue('drive', data.drive)
-      if (data.engine) setValue('engine', data.engine)
-      if (data.maxPower) setValue('maxPower', data.maxPower)
-      if (data.maxTorque) setValue('maxTorque', data.maxTorque)
-      if (data.hasRepairHistory != null) setValue('hasRepairHistory', data.hasRepairHistory)
+      if (data.shaken) setValue('shaken', data.shaken, opts)
+      if (data.transmission) setValue('transmission', data.transmission, opts)
+      if (data.drive) setValue('drive', data.drive, opts)
+      if (data.engine) setValue('engine', data.engine, opts)
+      if (data.maxPower) setValue('maxPower', data.maxPower, opts)
+      if (data.maxTorque) setValue('maxTorque', data.maxTorque, opts)
+      if (data.hasRepairHistory != null) setValue('hasRepairHistory', data.hasRepairHistory, opts)
     } catch (e) {
       setScrapeError(e instanceof Error ? e.message : '取得に失敗しました')
     } finally {
