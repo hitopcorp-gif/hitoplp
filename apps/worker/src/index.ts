@@ -160,6 +160,19 @@ app.get('/api/image/:key{.+}', async (c) => {
 
   const headers = new Headers()
   obj.writeHttpMetadata(headers)
+
+  // Ensure content-type is always set (Mac Safari rejects images without it)
+  if (!headers.has('content-type')) {
+    const ext = key.split('.').pop()?.toLowerCase()
+    const mimeMap: Record<string, string> = {
+      jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
+      webp: 'image/webp', gif: 'image/gif', svg: 'image/svg+xml',
+      heic: 'image/heic', heif: 'image/heif', avif: 'image/avif',
+      mp3: 'audio/mpeg', json: 'application/json', html: 'text/html',
+    }
+    headers.set('content-type', mimeMap[ext ?? ''] ?? 'image/jpeg')
+  }
+
   // index.json changes frequently — don't cache it; images are immutable — cache forever
   headers.set('cache-control', key === 'lp/index.json'
     ? 'no-cache, no-store, must-revalidate'
