@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { doc, getDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
@@ -9,7 +9,7 @@ import { generateContent } from '@/lib/ai'
 import { generateLpHtml } from '@/lib/lp-generator'
 import { generateNarration } from '@/lib/tts'
 import {
-  ChevronLeft, Eye, Globe, RotateCcw, BadgeCheck, Edit, Sparkles, Check, Trash2
+  ChevronLeft, Eye, Globe, RotateCcw, BadgeCheck, Edit, Sparkles, Check, Trash2, ChevronDown, Volume2
 } from 'lucide-react'
 
 interface LpIndexEntry {
@@ -26,7 +26,7 @@ export function VehicleDetailPage() {
   const navigate = useNavigate()
   const [vehicle, setVehicle] = useState<Vehicle | null>(null)
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<'preview' | 'edit' | 'sns'>('preview')
+  const [tab, setTab] = useState<'preview' | 'edit' | 'audio' | 'sns'>('preview')
   const [publishing, setPublishing] = useState(false)
   const [publishError, setPublishError] = useState('')
   const [regenerating, setRegenerating] = useState(false)
@@ -299,6 +299,7 @@ export function VehicleDetailPage() {
         {[
           { key: 'preview', label: 'プレビュー', icon: Eye },
           { key: 'edit', label: '編集', icon: Edit },
+          { key: 'audio', label: '音声', icon: Volume2 },
           { key: 'sns', label: 'SNS素材', icon: Sparkles },
         ].map(({ key, label, icon: Icon }) => (
           <button
@@ -377,10 +378,41 @@ export function VehicleDetailPage() {
           />
         )}
 
+        {tab === 'audio' && editedContent && (
+          <AudioTab
+            vehicleId={id!}
+            slug={vehicle.slug}
+            content={editedContent}
+            audioUrl={vehicle.audioUrl}
+            onContentChange={(narrationText) => {
+              const updated = { ...editedContent, narrationText }
+              setEditedContent(updated)
+            }}
+            onAudioUrlChange={(url) => setVehicle((prev) => prev ? { ...prev, audioUrl: url } : prev)}
+          />
+        )}
+
         {tab === 'sns' && vehicle.generatedContent && (
           <SnsTab vehicle={vehicle} content={vehicle.generatedContent} />
         )}
       </main>
+    </div>
+  )
+}
+
+function AccordionSection({ title, defaultOpen = false, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <div className="border border-white/10">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-white/3 transition-colors"
+      >
+        <span className="text-xs tracking-widest text-white/50 uppercase">{title}</span>
+        <ChevronDown className={`w-4 h-4 text-white/30 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && <div className="px-5 pb-5 space-y-5">{children}</div>}
     </div>
   )
 }
@@ -406,20 +438,113 @@ function EditTab({
   detailPhotoUrls: [string, string, string, string] | undefined
   onDetailPhotoUrlsChange: (urls: [string, string, string, string]) => void
 }) {
-  // Build default slots from photos if not set
   const allUrls = photos.map((p) => p.url)
   const slots: [string, string, string, string] = detailPhotoUrls ?? ['', '', '', '']
 
   return (
-    <div className="max-w-2xl space-y-8">
-      {/* Detail photo slots */}
-      <div className="space-y-4">
-        <p className="text-xs tracking-widest text-white/40 uppercase">ディテール写真の割り当て</p>
-        <div className="grid grid-cols-2 gap-4">
+    <div className="max-w-2xl space-y-4">
+      {/* Hero section */}
+      <AccordionSection title="ヒーロー / メインコピー" defaultOpen>
+        <EditField
+          label="車名（日本語）"
+          value={content.nameJa ?? ''}
+          onChange={(v) => onChange({ ...content, nameJa: v })}
+        />
+        <EditField
+          label="サブタイトル"
+          value={content.subtitle}
+          onChange={(v) => onChange({ ...content, subtitle: v })}
+        />
+        <EditField
+          label="英語コピー"
+          value={content.englishCopy}
+          onChange={(v) => onChange({ ...content, englishCopy: v })}
+        />
+        <EditField
+          label="プルクォート 1"
+          value={content.pullQuote1}
+          onChange={(v) => onChange({ ...content, pullQuote1: v })}
+        />
+        <EditField
+          label="プルクォート 2"
+          value={content.pullQuote2 ?? ''}
+          onChange={(v) => onChange({ ...content, pullQuote2: v })}
+        />
+      </AccordionSection>
+
+      {/* Section 1 */}
+      <AccordionSection title="セクション 1">
+        <EditField
+          label="タイトル"
+          value={content.section1.title}
+          onChange={(v) => onChange({ ...content, section1: { ...content.section1, title: v } })}
+        />
+        <EditField
+          label="サブタイトル"
+          value={content.section1.subtitle}
+          onChange={(v) => onChange({ ...content, section1: { ...content.section1, subtitle: v } })}
+        />
+        <EditTextarea
+          label="ストーリー"
+          value={content.section1.story}
+          onChange={(v) => onChange({ ...content, section1: { ...content.section1, story: v } })}
+        />
+      </AccordionSection>
+
+      {/* Section 2 */}
+      <AccordionSection title="セクション 2">
+        <EditField
+          label="タイトル"
+          value={content.section2.title}
+          onChange={(v) => onChange({ ...content, section2: { ...content.section2, title: v } })}
+        />
+        <EditField
+          label="サブタイトル"
+          value={content.section2.subtitle}
+          onChange={(v) => onChange({ ...content, section2: { ...content.section2, subtitle: v } })}
+        />
+        <EditTextarea
+          label="ストーリー"
+          value={content.section2.story}
+          onChange={(v) => onChange({ ...content, section2: { ...content.section2, story: v } })}
+        />
+      </AccordionSection>
+
+      {/* Section 3 / Details */}
+      <AccordionSection title="セクション 3 / ディテール">
+        <EditField
+          label="タイトル"
+          value={content.section3.title}
+          onChange={(v) => onChange({ ...content, section3: { ...content.section3, title: v } })}
+        />
+        <EditField
+          label="サブタイトル"
+          value={content.section3.subtitle}
+          onChange={(v) => onChange({ ...content, section3: { ...content.section3, subtitle: v } })}
+        />
+        <div className="grid grid-cols-2 gap-4 pt-2">
           {(content.section3?.details ?? []).slice(0, 4).map((detail, i) => (
-            <div key={i} className="space-y-2">
-              <p className="text-xs text-brand-gold">{detail.caption}</p>
-              <p className="text-xs text-white/30 leading-relaxed">{detail.description}</p>
+            <div key={i} className="space-y-2 border border-white/5 p-3">
+              <EditField
+                label={`ディテール ${i + 1} キャプション`}
+                value={detail.caption}
+                onChange={(v) => {
+                  const details = [...(content.section3.details ?? [])]
+                  details[i] = { ...details[i], caption: v }
+                  onChange({ ...content, section3: { ...content.section3, details } })
+                }}
+              />
+              <EditTextarea
+                label="説明"
+                value={detail.description}
+                onChange={(v) => {
+                  const details = [...(content.section3.details ?? [])]
+                  details[i] = { ...details[i], description: v }
+                  onChange({ ...content, section3: { ...content.section3, details } })
+                }}
+                rows={3}
+              />
+              {/* Photo picker */}
               <div className="flex flex-wrap gap-1.5 pt-1">
                 {allUrls.map((url) => (
                   <button
@@ -430,7 +555,7 @@ function EditTab({
                       next[i] = url
                       onDetailPhotoUrlsChange(next)
                     }}
-                    className={`relative w-14 h-14 overflow-hidden border-2 transition-all ${
+                    className={`relative w-12 h-12 overflow-hidden border-2 transition-all ${
                       slots[i] === url ? 'border-brand-gold' : 'border-white/10 hover:border-white/30'
                     }`}
                   >
@@ -446,40 +571,37 @@ function EditTab({
             </div>
           ))}
         </div>
-      </div>
-      <hr className="border-white/10" />
-      <EditField
-        label="サブタイトル"
-        value={content.subtitle}
-        onChange={(v) => onChange({ ...content, subtitle: v })}
-      />
-      <EditField
-        label="英語コピー"
-        value={content.englishCopy}
-        onChange={(v) => onChange({ ...content, englishCopy: v })}
-      />
-      <EditField
-        label="プルクォート 1"
-        value={content.pullQuote1}
-        onChange={(v) => onChange({ ...content, pullQuote1: v })}
-      />
-      {content.pullQuote2 !== undefined && (
+      </AccordionSection>
+
+      {/* SEO */}
+      <AccordionSection title="SEO">
         <EditField
-          label="プルクォート 2"
-          value={content.pullQuote2 ?? ''}
-          onChange={(v) => onChange({ ...content, pullQuote2: v })}
+          label="メタディスクリプション"
+          value={content.seo?.metaDescription ?? ''}
+          onChange={(v) => onChange({ ...content, seo: { ...content.seo!, metaDescription: v, keywords: content.seo?.keywords ?? '', ogDescription: content.seo?.ogDescription ?? '' } })}
         />
-      )}
-      <EditTextarea
-        label="セクション 1 ストーリー"
-        value={content.section1.story}
-        onChange={(v) => onChange({ ...content, section1: { ...content.section1, story: v } })}
-      />
-      <EditTextarea
-        label="セクション 2 ストーリー"
-        value={content.section2.story}
-        onChange={(v) => onChange({ ...content, section2: { ...content.section2, story: v } })}
-      />
+        <EditField
+          label="キーワード"
+          value={content.seo?.keywords ?? ''}
+          onChange={(v) => onChange({ ...content, seo: { ...content.seo!, metaDescription: content.seo?.metaDescription ?? '', keywords: v, ogDescription: content.seo?.ogDescription ?? '' } })}
+        />
+        <EditField
+          label="OG ディスクリプション"
+          value={content.seo?.ogDescription ?? ''}
+          onChange={(v) => onChange({ ...content, seo: { ...content.seo!, metaDescription: content.seo?.metaDescription ?? '', keywords: content.seo?.keywords ?? '', ogDescription: v } })}
+        />
+      </AccordionSection>
+
+      {/* Narration text (read-only preview, full edit in Audio tab) */}
+      <AccordionSection title="ナレーションテキスト">
+        <EditTextarea
+          label="ナレーション原稿（音声タブで詳細編集・再生成）"
+          value={content.narrationText ?? ''}
+          onChange={(v) => onChange({ ...content, narrationText: v })}
+          rows={8}
+        />
+      </AccordionSection>
+
       {saveError && <p className="text-xs text-red-400 border border-red-900/40 bg-red-900/10 px-3 py-2">{saveError}</p>}
       {saveOk && <p className="text-xs text-brand-gold border border-brand-gold/30 bg-brand-gold/5 px-3 py-2">保存しました</p>}
       <Button onClick={onSave} disabled={saving} className="w-full">
@@ -503,16 +625,163 @@ function EditField({ label, value, onChange }: { label: string; value: string; o
   )
 }
 
-function EditTextarea({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+function EditTextarea({ label, value, onChange, rows = 6 }: { label: string; value: string; onChange: (v: string) => void; rows?: number }) {
   return (
     <div className="space-y-2">
       <label className="text-xs tracking-widest text-white/40 uppercase">{label}</label>
       <textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        rows={6}
+        rows={rows}
         className="w-full border border-white/20 bg-transparent p-3 text-sm text-white focus:border-brand-gold focus:outline-none resize-none"
       />
+    </div>
+  )
+}
+
+function AudioTab({
+  vehicleId,
+  slug,
+  content,
+  audioUrl,
+  onContentChange,
+  onAudioUrlChange,
+}: {
+  vehicleId: string
+  slug: string
+  content: GeneratedContent
+  audioUrl?: string
+  onContentChange: (narrationText: string) => void
+  onAudioUrlChange: (url: string) => void
+}) {
+  const [localText, setLocalText] = useState(content.narrationText ?? '')
+  const [savingText, setSavingText] = useState(false)
+  const [savedText, setSavedText] = useState(false)
+  const [regenerating, setRegenerating] = useState(false)
+  const [regenError, setRegenError] = useState('')
+  const [regenOk, setRegenOk] = useState(false)
+  const audioRef = useRef<HTMLAudioElement>(null)
+
+  // Sync if content changes externally
+  useEffect(() => {
+    setLocalText(content.narrationText ?? '')
+  }, [content.narrationText])
+
+  async function handleSaveText() {
+    setSavingText(true)
+    setSavedText(false)
+    try {
+      await updateDoc(doc(db, 'vehicles', vehicleId), {
+        'generatedContent.narrationText': localText,
+        updatedAt: serverTimestamp(),
+      })
+      onContentChange(localText)
+      setSavedText(true)
+      setTimeout(() => setSavedText(false), 2500)
+    } finally {
+      setSavingText(false)
+    }
+  }
+
+  async function handleRegenerateAudio() {
+    if (!localText.trim()) return
+    setRegenerating(true)
+    setRegenError('')
+    setRegenOk(false)
+    try {
+      // Save text first
+      await updateDoc(doc(db, 'vehicles', vehicleId), {
+        'generatedContent.narrationText': localText,
+        updatedAt: serverTimestamp(),
+      })
+      onContentChange(localText)
+
+      // Generate audio (overwrites same R2 key)
+      const url = await generateNarration(localText, slug)
+      if (!url) throw new Error('音声生成に失敗しました')
+
+      await updateDoc(doc(db, 'vehicles', vehicleId), { audioUrl: url })
+      onAudioUrlChange(url)
+      setRegenOk(true)
+      setTimeout(() => setRegenOk(false), 3000)
+
+      // Force reload audio element
+      if (audioRef.current) {
+        audioRef.current.load()
+      }
+    } catch (e) {
+      setRegenError(e instanceof Error ? e.message : '音声生成に失敗しました')
+    } finally {
+      setRegenerating(false)
+    }
+  }
+
+  const textChanged = localText !== (content.narrationText ?? '')
+
+  return (
+    <div className="max-w-2xl space-y-8">
+      {/* Current audio player */}
+      <div className="border border-white/10 p-6 space-y-4">
+        <p className="text-xs tracking-widest text-white/40 uppercase flex items-center gap-2">
+          <Volume2 className="w-3.5 h-3.5" />
+          現在の音声
+        </p>
+        {audioUrl ? (
+          <audio ref={audioRef} controls className="w-full" key={audioUrl}>
+            <source src={`${audioUrl}?t=${Date.now()}`} type="audio/mpeg" />
+          </audio>
+        ) : (
+          <p className="text-sm text-white/30">音声がまだ生成されていません。下のテキストを確認して「音声を再生成」してください。</p>
+        )}
+      </div>
+
+      {/* Narration text editor */}
+      <div className="border border-white/10 p-6 space-y-4">
+        <p className="text-xs tracking-widest text-white/40 uppercase">ナレーション原稿</p>
+        <p className="text-xs text-white/30">
+          ElevenLabs音声タグ対応（[calm], [whispers], [pause 1.5s] など）。編集後「テキスト保存」でFirestoreに保存。「音声を再生成」でTTS再実行。
+        </p>
+        <textarea
+          value={localText}
+          onChange={(e) => setLocalText(e.target.value)}
+          rows={14}
+          className="w-full border border-white/20 bg-transparent p-4 text-sm text-white/80 leading-relaxed focus:border-brand-gold focus:outline-none resize-none font-mono"
+          placeholder="ナレーションテキストがありません..."
+        />
+
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleSaveText}
+            disabled={savingText || !textChanged}
+            className="border-white/20 text-white/60 hover:text-white"
+          >
+            {savingText ? '保存中...' : savedText ? '✓ 保存済み' : 'テキスト保存'}
+          </Button>
+          <Button
+            size="sm"
+            onClick={handleRegenerateAudio}
+            disabled={regenerating || !localText.trim()}
+          >
+            <Volume2 className={`w-4 h-4 ${regenerating ? 'animate-pulse' : ''}`} />
+            {regenerating ? '生成中...' : '音声を再生成'}
+          </Button>
+        </div>
+
+        {regenError && (
+          <p className="text-xs text-red-400 border border-red-900/40 bg-red-900/10 px-3 py-2">{regenError}</p>
+        )}
+        {regenOk && (
+          <p className="text-xs text-brand-gold border border-brand-gold/30 bg-brand-gold/5 px-3 py-2">
+            音声を再生成しました。公開中のLPは自動的に更新されます。
+          </p>
+        )}
+      </div>
+
+      <p className="text-xs text-white/20 leading-relaxed">
+        ※ 音声ファイルはスラッグ（{slug}）に紐づいています。再生成するとR2上の同じファイルが上書きされるため、公開中のLPも自動で最新の音声に切り替わります。LPの再公開は不要です。
+      </p>
     </div>
   )
 }
