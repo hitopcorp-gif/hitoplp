@@ -8,8 +8,11 @@ import { LpPreview } from '@/components/LpPreview'
 import { generateContent } from '@/lib/ai'
 import { generateLpHtml } from '@/lib/lp-generator'
 import { generateNarration } from '@/lib/tts'
+import { generateVerticalImage, generateReelVideo } from '@/lib/reel'
+import { generateFeedImage, generateOgpImage } from '@/lib/sns-image'
 import {
-  ChevronLeft, Eye, Globe, RotateCcw, BadgeCheck, Edit, Sparkles, Check, Trash2, ChevronDown, Volume2
+  ChevronLeft, Eye, Globe, RotateCcw, BadgeCheck, Edit, Sparkles, Check, Trash2, ChevronDown, Volume2,
+  Video, Image, Copy, Download, Play, RefreshCw, Instagram
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -20,6 +23,7 @@ interface LpIndexEntry {
   year: number
   price: string
   heroUrl: string
+  status?: 'published' | 'sold'
 }
 
 export function VehicleDetailPage() {
@@ -112,6 +116,7 @@ export function VehicleDetailPage() {
           year: vehicle.basicInfo.year,
           price: vehicle.basicInfo.isAsk ? 'ASK' : vehicle.basicInfo.price,
           heroUrl: vehicle.photos.find(p => p.tag === 'hero')?.url ?? vehicle.photos[0]?.url ?? '',
+          status: 'published',
         })
       } else if (nextStatus === 'draft') {
         const API_BASE2 = import.meta.env.VITE_API_BASE_URL
@@ -167,15 +172,48 @@ export function VehicleDetailPage() {
 
   async function handleMarkSold() {
     if (!id || !vehicle) return
-    await updateDoc(doc(db, 'vehicles', id), {
-      status: 'sold',
-      soldAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    })
-    setVehicle((prev) => prev ? { ...prev, status: 'sold' } : prev)
-    // Remove from public index
-    const API_BASE = import.meta.env.VITE_API_BASE_URL
-    try { await updateLpIndex(API_BASE, vehicle.slug, null) } catch { /* best effort */ }
+    setPublishing(true)
+    setPublishPhase('売約済みに変更中...')
+    try {
+      await updateDoc(doc(db, 'vehicles', id), {
+        status: 'sold',
+        soldAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      })
+      setVehicle((prev) => prev ? { ...prev, status: 'sold' } : prev)
+
+      const API_BASE = import.meta.env.VITE_API_BASE_URL
+      const content = editedContent ?? vehicle.generatedContent
+      if (content) {
+        // Re-generate LP HTML with SOLD status
+        setPublishPhase('SOLD LP生成中...')
+        const soldVehicle = { ...vehicle, status: 'sold' as const, detailPhotoUrls: detailPhotoUrls ?? vehicle.detailPhotoUrls }
+        const html = generateLpHtml(soldVehicle, content, false)
+        await fetch(`${API_BASE}/api/upload/lp/${vehicle.slug}.html`, {
+          method: 'PUT',
+          headers: { 'content-type': 'text/html; charset=utf-8' },
+          body: html,
+        })
+      }
+
+      // Update index with sold status
+      setPublishPhase('インデックス更新中...')
+      const heroUrl = vehicle.photos.find(p => p.tag === 'hero')?.url ?? vehicle.photos[0]?.url ?? ''
+      await updateLpIndex(API_BASE, vehicle.slug, {
+        slug: vehicle.slug,
+        name: vehicle.basicInfo.name,
+        nameJa: editedContent?.nameJa ?? vehicle.generatedContent?.nameJa ?? '',
+        year: vehicle.basicInfo.year,
+        price: vehicle.basicInfo.isAsk ? 'ASK' : vehicle.basicInfo.price,
+        heroUrl,
+        status: 'sold',
+      })
+    } catch (e) {
+      console.error('Mark sold error:', e)
+    } finally {
+      setPublishing(false)
+      setPublishPhase('')
+    }
   }
 
   async function handleRestoreFromSold() {
@@ -401,7 +439,7 @@ export function VehicleDetailPage() {
         )}
 
         {tab === 'sns' && vehicle.generatedContent && (
-          <SnsTab vehicle={vehicle} content={vehicle.generatedContent} />
+          <SnsTab vehicle={vehicle} vehicleId={id!} />
         )}
       </main>
 
@@ -901,36 +939,405 @@ function AudioTab({
   )
 }
 
-function SnsTab({ content }: { vehicle: Vehicle; content: GeneratedContent }) {
+function SnsTab({ vehicle, vehicleId }: { vehicle: Vehicle; vehicleId: string }) {
+  const content = vehicle.generatedContent!
+  const [reelPhase, setReelPhase] = useState('')
+  const [reelError, setReelError] = useState('')
+  const [generatingReel, setGeneratingReel] = useState(false)
+  const [generatingFeed, setGeneratingFeed] = useState(false)
+  const [generatingOgp, setGeneratingOgp] = useState(false)
+
+  // Editable fields (init from vehicle, fallback to generatedContent)
+  const [caption, setCaption] = useState(vehicle.caption ?? content.igCaption ?? '')
+  const [hashtags, setHashtags] = useState(vehicle.hashtags ?? content.igHashtags ?? '')
+  const [reelNarrationText, setReelNarrationText] = useState(vehicle.reelNarration ?? content.reelNarration ?? '')
+  const [generatingReelAudio, setGeneratingReelAudio] = useState(false)
+  const [reelAudioError, setReelAudioError] = useState('')
+
+  // Local state for URLs (mirrors vehicle)
+  const [verticalImageUrl, setVerticalImageUrl] = useState(vehicle.verticalImageUrl ?? '')
+  const [reelVideoUrl, setReelVideoUrl] = useState(vehicle.reelVideoUrl ?? '')
+  const [reelAudioUrl, setReelAudioUrl] = useState(vehicle.reelAudioUrl ?? '')
+  const [feedImageUrl, setFeedImageUrl] = useState(vehicle.feedImageUrl ?? '')
+  const [ogpImageUrl, setOgpImageUrl] = useState(vehicle.ogpImageUrl ?? '')
+
+  const [copied, setCopied] = useState('')
+  const [savedCaption, setSavedCaption] = useState(false)
+
+  const heroUrl = vehicle.photos.find(p => p.tag === 'hero')?.url ?? vehicle.photos[0]?.url ?? ''
+  const isPublished = vehicle.status === 'published' || vehicle.status === 'sold'
+  const reelAudioRef = useRef<HTMLAudioElement>(null)
+
+  async function handleGenerateReel() {
+    if (!heroUrl) return
+    setGeneratingReel(true)
+    setReelError('')
+    try {
+      // Step 1: 縦長画像生成
+      setReelPhase('縦長画像を生成中...')
+      let vUrl = verticalImageUrl
+      if (!vUrl) {
+        vUrl = await generateVerticalImage(heroUrl, vehicle.slug, setReelPhase)
+        setVerticalImageUrl(vUrl)
+        await updateDoc(doc(db, 'vehicles', vehicleId), { verticalImageUrl: vUrl })
+      }
+
+      // Step 2: リール動画生成
+      setReelPhase('リール動画を生成中（3〜6分）...')
+      const videoUrl = await generateReelVideo(vUrl, vehicle.slug, setReelPhase)
+      setReelVideoUrl(videoUrl)
+      await updateDoc(doc(db, 'vehicles', vehicleId), { reelVideoUrl: videoUrl })
+      setReelPhase('')
+    } catch (e) {
+      setReelError(e instanceof Error ? e.message : 'リール動画の生成に失敗しました')
+      setReelPhase('')
+    } finally {
+      setGeneratingReel(false)
+    }
+  }
+
+  async function handleRegenerateReel() {
+    // Clear vertical image to force re-generation
+    setVerticalImageUrl('')
+    await updateDoc(doc(db, 'vehicles', vehicleId), { verticalImageUrl: '', reelVideoUrl: '' })
+    setReelVideoUrl('')
+    handleGenerateReel()
+  }
+
+  async function handleGenerateReelAudio() {
+    if (!reelNarrationText.trim()) return
+    setGeneratingReelAudio(true)
+    setReelAudioError('')
+    try {
+      // Save text first
+      await updateDoc(doc(db, 'vehicles', vehicleId), {
+        reelNarration: reelNarrationText,
+        updatedAt: serverTimestamp(),
+      })
+      // Generate audio (slug-reel to not collide with LP audio)
+      const url = await generateNarration(reelNarrationText, `${vehicle.slug}-reel`)
+      if (!url) throw new Error('音声生成に失敗しました')
+      setReelAudioUrl(url)
+      await updateDoc(doc(db, 'vehicles', vehicleId), { reelAudioUrl: url })
+      if (reelAudioRef.current) reelAudioRef.current.load()
+    } catch (e) {
+      setReelAudioError(e instanceof Error ? e.message : '音声生成に失敗しました')
+    } finally {
+      setGeneratingReelAudio(false)
+    }
+  }
+
+  async function handleGenerateFeed() {
+    if (!heroUrl) return
+    setGeneratingFeed(true)
+    try {
+      const url = await generateFeedImage(heroUrl, vehicle.slug)
+      setFeedImageUrl(url)
+      await updateDoc(doc(db, 'vehicles', vehicleId), { feedImageUrl: url })
+    } catch (e) {
+      console.error('Feed image error:', e)
+    } finally {
+      setGeneratingFeed(false)
+    }
+  }
+
+  async function handleGenerateOgp() {
+    if (!heroUrl) return
+    setGeneratingOgp(true)
+    try {
+      const url = await generateOgpImage(heroUrl, vehicle.slug, vehicle.basicInfo.name)
+      setOgpImageUrl(url)
+      await updateDoc(doc(db, 'vehicles', vehicleId), { ogpImageUrl: url })
+    } catch (e) {
+      console.error('OGP image error:', e)
+    } finally {
+      setGeneratingOgp(false)
+    }
+  }
+
+  async function handleSaveCaption() {
+    await updateDoc(doc(db, 'vehicles', vehicleId), {
+      caption,
+      hashtags,
+      updatedAt: serverTimestamp(),
+    })
+    setSavedCaption(true)
+    setTimeout(() => setSavedCaption(false), 2500)
+  }
+
+  function copyText(text: string, label: string) {
+    navigator.clipboard.writeText(text)
+    setCopied(label)
+    setTimeout(() => setCopied(''), 2000)
+  }
+
+  function downloadUrl(url: string, filename: string) {
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    a.target = '_blank'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+  }
+
+  if (!isPublished) {
+    return (
+      <div className="max-w-2xl">
+        <div className="border border-white/10 p-12 text-center space-y-4">
+          <Instagram className="w-8 h-8 text-white/20 mx-auto" />
+          <p className="text-sm text-white/40">LPを公開するとSNS素材が利用可能になります</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="max-w-2xl space-y-8">
-      <div className="border border-white/10 p-6 space-y-3">
-        <p className="text-xs tracking-widest text-white/40 uppercase">Instagram キャプション</p>
-        <pre className="text-sm text-white/80 whitespace-pre-wrap font-noto-sans leading-relaxed">
-          {content.igCaption}
-        </pre>
-        <p className="text-sm text-brand-gold/70">{content.igHashtags}</p>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigator.clipboard.writeText(`${content.igCaption}\n\n${content.igHashtags}`)}
-          className="border-white/20 text-white/40"
-        >
-          コピー
-        </Button>
+    <div className="max-w-2xl space-y-6">
+      <div>
+        <h2 className="font-cormorant text-2xl font-light text-white mb-1">SNS素材</h2>
+        <p className="text-xs text-white/30">各素材は独立して生成・再生成できます</p>
       </div>
 
-      <div className="border border-white/10 p-6 space-y-3">
-        <p className="text-xs tracking-widest text-white/40 uppercase">Twitter / X</p>
-        <p className="text-sm text-white/80 leading-relaxed">{content.tweetText}</p>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigator.clipboard.writeText(content.tweetText)}
-          className="border-white/20 text-white/40"
-        >
-          コピー
-        </Button>
+      {/* ── リール動画 ── */}
+      <div className="border border-white/10">
+        <div className="px-5 py-4 border-b border-white/5 flex items-center gap-2">
+          <Video className="w-4 h-4 text-brand-gold/60" />
+          <span className="text-xs tracking-widest text-white/50 uppercase">リール動画</span>
+        </div>
+        <div className="p-5 space-y-4">
+          {reelVideoUrl ? (
+            <>
+              <video
+                src={`${reelVideoUrl}?t=${Date.now()}`}
+                controls
+                className="w-full max-w-xs mx-auto aspect-[9/16] bg-black object-contain"
+              />
+              <div className="flex gap-3 justify-center">
+                <Button variant="ghost" size="sm" onClick={() => downloadUrl(reelVideoUrl, `${vehicle.slug}-reel.mp4`)} className="border-white/20 text-white/50">
+                  <Download className="w-3.5 h-3.5" /> ダウンロード
+                </Button>
+                <Button variant="ghost" size="sm" onClick={handleRegenerateReel} disabled={generatingReel} className="border-white/20 text-white/50">
+                  <RefreshCw className={`w-3.5 h-3.5 ${generatingReel ? 'animate-spin' : ''}`} /> 再生成
+                </Button>
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-6 space-y-4">
+              {generatingReel ? (
+                <div className="space-y-4">
+                  <div className="relative w-16 h-16 mx-auto">
+                    <motion.div className="absolute inset-0 rounded-full border-2 border-brand-gold/20" />
+                    <motion.div
+                      className="absolute inset-0 rounded-full border-2 border-transparent border-t-brand-gold"
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Video className="w-5 h-5 text-brand-gold" />
+                    </div>
+                  </div>
+                  <motion.p
+                    className="text-sm text-white/60"
+                    key={reelPhase}
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                  >
+                    {reelPhase || '生成中...'}
+                  </motion.p>
+                  <p className="text-xs text-white/25">動画生成には3〜6分かかります</p>
+                </div>
+              ) : (
+                <>
+                  <Video className="w-8 h-8 text-white/15 mx-auto" />
+                  <p className="text-xs text-white/30">ヒーロー写真から9:16リール動画を生成します</p>
+                  <Button size="sm" onClick={handleGenerateReel} disabled={!heroUrl}>
+                    <Play className="w-3.5 h-3.5" /> 動画を生成
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
+          {reelError && <p className="text-xs text-red-400 border border-red-900/40 bg-red-900/10 px-3 py-2">{reelError}</p>}
+        </div>
+      </div>
+
+      {/* ── リールナレーション ── */}
+      <div className="border border-white/10">
+        <div className="px-5 py-4 border-b border-white/5 flex items-center gap-2">
+          <Volume2 className="w-4 h-4 text-brand-gold/60" />
+          <span className="text-xs tracking-widest text-white/50 uppercase">リールナレーション</span>
+        </div>
+        <div className="p-5 space-y-4">
+          <p className="text-xs text-white/30">テキストを編集してから「音声を生成」してください。Instagramでリール動画に重ねて使います。</p>
+          <textarea
+            value={reelNarrationText}
+            onChange={(e) => setReelNarrationText(e.target.value)}
+            rows={4}
+            className="w-full border border-white/20 bg-transparent p-3 text-sm text-white/80 leading-relaxed focus:border-brand-gold focus:outline-none resize-none font-mono"
+            placeholder="リールナレーションテキスト..."
+          />
+          <div className="flex items-center gap-3">
+            <Button size="sm" onClick={handleGenerateReelAudio} disabled={generatingReelAudio || !reelNarrationText.trim()}>
+              <Volume2 className={`w-3.5 h-3.5 ${generatingReelAudio ? 'animate-pulse' : ''}`} />
+              {generatingReelAudio ? '生成中...' : '音声を生成'}
+            </Button>
+          </div>
+
+          {/* Reel audio generation progress */}
+          <AnimatePresence>
+            {generatingReelAudio && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="border border-brand-gold/20 bg-brand-gold/5 p-4 flex items-center gap-4">
+                  <motion.div
+                    className="w-8 h-8 rounded-full border-2 border-transparent border-t-brand-gold shrink-0"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                  />
+                  <p className="text-sm text-white/60">ElevenLabsで音声を生成しています...</p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {reelAudioUrl && (
+            <div className="space-y-3 pt-2">
+              <audio ref={reelAudioRef} controls className="w-full" key={reelAudioUrl}>
+                <source src={`${reelAudioUrl}?t=${Date.now()}`} type="audio/mpeg" />
+              </audio>
+              <Button variant="ghost" size="sm" onClick={() => downloadUrl(reelAudioUrl, `${vehicle.slug}-reel-narration.mp3`)} className="border-white/20 text-white/50">
+                <Download className="w-3.5 h-3.5" /> ダウンロード
+              </Button>
+            </div>
+          )}
+          {reelAudioError && <p className="text-xs text-red-400 border border-red-900/40 bg-red-900/10 px-3 py-2">{reelAudioError}</p>}
+        </div>
+      </div>
+
+      {/* ── フィード画像 ── */}
+      <div className="border border-white/10">
+        <div className="px-5 py-4 border-b border-white/5 flex items-center gap-2">
+          <Image className="w-4 h-4 text-brand-gold/60" />
+          <span className="text-xs tracking-widest text-white/50 uppercase">フィード画像（1080x1080）</span>
+        </div>
+        <div className="p-5 space-y-4">
+          {feedImageUrl ? (
+            <>
+              <img src={`${feedImageUrl}?t=${Date.now()}`} alt="Feed" className="w-full max-w-xs mx-auto aspect-square object-cover" />
+              <div className="flex gap-3 justify-center">
+                <Button variant="ghost" size="sm" onClick={() => downloadUrl(feedImageUrl, `${vehicle.slug}-feed.jpg`)} className="border-white/20 text-white/50">
+                  <Download className="w-3.5 h-3.5" /> ダウンロード
+                </Button>
+                <Button variant="ghost" size="sm" onClick={handleGenerateFeed} disabled={generatingFeed} className="border-white/20 text-white/50">
+                  <RefreshCw className={`w-3.5 h-3.5 ${generatingFeed ? 'animate-spin' : ''}`} /> 再生成
+                </Button>
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-6 space-y-4">
+              <Button size="sm" onClick={handleGenerateFeed} disabled={generatingFeed || !heroUrl}>
+                {generatingFeed ? (
+                  <><RefreshCw className="w-3.5 h-3.5 animate-spin" /> 生成中...</>
+                ) : (
+                  <><Image className="w-3.5 h-3.5" /> フィード画像を生成</>
+                )}
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── OGP画像 ── */}
+      <div className="border border-white/10">
+        <div className="px-5 py-4 border-b border-white/5 flex items-center gap-2">
+          <Globe className="w-4 h-4 text-brand-gold/60" />
+          <span className="text-xs tracking-widest text-white/50 uppercase">OGP画像（1200x630）</span>
+        </div>
+        <div className="p-5 space-y-4">
+          {ogpImageUrl ? (
+            <>
+              <img src={`${ogpImageUrl}?t=${Date.now()}`} alt="OGP" className="w-full aspect-[1200/630] object-cover" />
+              <div className="flex gap-3 justify-center">
+                <Button variant="ghost" size="sm" onClick={() => downloadUrl(ogpImageUrl, `${vehicle.slug}-ogp.jpg`)} className="border-white/20 text-white/50">
+                  <Download className="w-3.5 h-3.5" /> ダウンロード
+                </Button>
+                <Button variant="ghost" size="sm" onClick={handleGenerateOgp} disabled={generatingOgp} className="border-white/20 text-white/50">
+                  <RefreshCw className={`w-3.5 h-3.5 ${generatingOgp ? 'animate-spin' : ''}`} /> 再生成
+                </Button>
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-6 space-y-4">
+              <Button size="sm" onClick={handleGenerateOgp} disabled={generatingOgp || !heroUrl}>
+                {generatingOgp ? (
+                  <><RefreshCw className="w-3.5 h-3.5 animate-spin" /> 生成中...</>
+                ) : (
+                  <><Globe className="w-3.5 h-3.5" /> OGP画像を生成</>
+                )}
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── キャプション + ハッシュタグ ── */}
+      <div className="border border-white/10">
+        <div className="px-5 py-4 border-b border-white/5 flex items-center gap-2">
+          <Instagram className="w-4 h-4 text-brand-gold/60" />
+          <span className="text-xs tracking-widest text-white/50 uppercase">キャプション + ハッシュタグ</span>
+        </div>
+        <div className="p-5 space-y-4">
+          <textarea
+            value={caption}
+            onChange={(e) => setCaption(e.target.value)}
+            rows={6}
+            className="w-full border border-white/20 bg-transparent p-3 text-sm text-white/80 leading-relaxed focus:border-brand-gold focus:outline-none resize-none"
+            placeholder="キャプション..."
+          />
+          <textarea
+            value={hashtags}
+            onChange={(e) => setHashtags(e.target.value)}
+            rows={2}
+            className="w-full border border-white/20 bg-transparent p-3 text-sm text-brand-gold/70 focus:border-brand-gold focus:outline-none resize-none"
+            placeholder="#HiTopCorp #車名..."
+          />
+          <div className="flex items-center gap-3 flex-wrap">
+            <Button variant="ghost" size="sm" onClick={handleSaveCaption} className="border-white/20 text-white/50">
+              {savedCaption ? <><Check className="w-3.5 h-3.5" /> 保存済み</> : '保存'}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => copyText(`${caption}\n\n${hashtags}`, 'caption')}
+              className="border-white/20 text-white/50"
+            >
+              <Copy className="w-3.5 h-3.5" /> {copied === 'caption' ? 'コピー済み' : 'コピー'}
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* ── 投稿手順 ── */}
+      <div className="border border-brand-gold/10 bg-brand-gold/3 p-5 space-y-3">
+        <p className="text-xs tracking-widest text-brand-gold/50 uppercase">投稿手順</p>
+        <ol className="space-y-1.5 text-xs text-white/40 leading-relaxed list-decimal list-inside">
+          <li>リール動画をダウンロード</li>
+          <li>Instagramでリール投稿</li>
+          <li>リールナレーション音声を動画に重ねる</li>
+          <li>キャプションを貼り付け</li>
+          <li>同じ動画をストーリーズにも投稿</li>
+          <li>ストーリーズにリンクスタンプでLP URLを貼る</li>
+        </ol>
+        {vehicle.status === 'published' && (
+          <p className="text-xs text-brand-gold/40 pt-2 border-t border-brand-gold/10">
+            LP URL: hitoplp-api.hitopcorp.workers.dev/{vehicle.slug}
+          </p>
+        )}
       </div>
     </div>
   )

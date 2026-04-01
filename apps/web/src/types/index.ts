@@ -66,6 +66,7 @@ export interface GeneratedContent {
   igHashtags: string
   tweetText: string
   narrationText?: string
+  reelNarration?: string
   seo?: {
     metaDescription: string
     keywords: string
@@ -83,6 +84,15 @@ export interface Vehicle {
   generatedContent?: GeneratedContent
   detailPhotoUrls?: [string, string, string, string]
   audioUrl?: string
+  // Phase 2 — SNS素材（LPとは独立）
+  reelVideoUrl?: string
+  reelAudioUrl?: string
+  reelNarration?: string
+  feedImageUrl?: string
+  ogpImageUrl?: string
+  verticalImageUrl?: string
+  caption?: string
+  hashtags?: string
   status: 'draft' | 'published' | 'sold'
   publishedAt?: Date
   soldAt?: Date

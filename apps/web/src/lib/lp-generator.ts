@@ -126,13 +126,13 @@ ${content.seo?.keywords ? `<meta name="keywords" content="${content.seo.keywords
 <meta property="og:url" content="https://hitoplp-api.hitopcorp.workers.dev/${vehicle.slug}">
 <meta property="og:site_name" content="HI-TOP JOURNAL">
 <meta property="og:locale" content="ja_JP">
-${heroUrl ? `<meta property="og:image" content="${heroUrl}">
+${(vehicle.ogpImageUrl || heroUrl) ? `<meta property="og:image" content="${vehicle.ogpImageUrl || heroUrl}">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">` : ''}
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="${basicInfo.name} | HI-TOP JOURNAL">
 <meta name="twitter:description" content="${content.seo?.ogDescription ?? content.subtitle}">
-${heroUrl ? `<meta name="twitter:image" content="${heroUrl}">` : ''}
+${(vehicle.ogpImageUrl || heroUrl) ? `<meta name="twitter:image" content="${vehicle.ogpImageUrl || heroUrl}">` : ''}
 <script type="application/ld+json">
 ${JSON.stringify({
   "@context": "https://schema.org",
@@ -588,6 +588,18 @@ ${content.pullQuote2 ? `<div class="pq">
 <!-- CTA -->
 <section class="cta">
   <div class="w">
+${vehicle.status === 'sold' ? `
+    <div class="cta-vert ${R}"></div>
+    <p class="cta-copy ${R}" style="color:var(--text-dim);">この車は売約済みです</p>
+    <p class="sans ${R}" style="font-size:12px;color:var(--text-dim);opacity:0.6;margin-top:8px;">
+      他の在庫車はこちらからご覧いただけます
+    </p>
+    <div class="cta-btns" style="margin-top:24px;">
+      <a href="https://hitoplp-api.hitopcorp.workers.dev/" class="cta-btn ${R}">
+        在庫一覧を見る
+      </a>
+    </div>
+` : `
     <div class="cta-vert ${R}"></div>
     <p class="cta-copy ${R}">この車の話を、聞いてみる</p>
     <div class="cta-btns">
@@ -600,8 +612,34 @@ ${content.pullQuote2 ? `<div class="pq">
         LINE で問い合わせ
       </a>
     </div>
+`}
   </div>
 </section>
+
+<!-- Share + Follow -->
+<div style="text-align:center;padding:40px 0 20px;">
+  <div style="display:flex;justify-content:center;gap:16px;margin-bottom:32px;">
+    <a href="https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(`https://hitoplp-api.hitopcorp.workers.dev/${vehicle.slug}`)}"
+       target="_blank"
+       class="cta-btn ${R}" style="font-size:12px;padding:10px 24px;">
+      LINEで送る
+    </a>
+    <button onclick="navigator.clipboard.writeText('https://hitoplp-api.hitopcorp.workers.dev/${vehicle.slug}');this.textContent='コピー済み';setTimeout(()=>this.textContent='リンクをコピー',2000)"
+       class="cta-btn ${R} d1" style="font-size:12px;padding:10px 24px;cursor:pointer;">
+      リンクをコピー
+    </button>
+  </div>
+  <a href="https://www.instagram.com/hitop.autotrends/"
+     target="_blank"
+     style="display:inline-flex;align-items:center;gap:8px;font-family:'Noto Sans JP',sans-serif;font-size:11px;letter-spacing:0.15em;color:rgba(255,255,255,0.35);text-decoration:none;transition:color 0.3s;">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <rect x="2" y="2" width="20" height="20" rx="5"/>
+      <circle cx="12" cy="12" r="5"/>
+      <circle cx="17.5" cy="6.5" r="1.5"/>
+    </svg>
+    HI-TOPの最新入荷をフォロー
+  </a>
+</div>
 
 <footer>
   <div class="w">

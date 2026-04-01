@@ -21,22 +21,33 @@ app.get('/health', (c) => c.json({ ok: true }))
 // ── LP一覧ギャラリーページ ──
 app.get('/', async (c) => {
   const obj = await c.env.IMAGES.get('lp/index.json')
-  type Entry = { slug: string; name: string; nameJa: string; year: number; price: string; heroUrl: string }
+  type Entry = { slug: string; name: string; nameJa: string; year: number; price: string; heroUrl: string; status?: 'published' | 'sold' }
   const entries: Entry[] = obj ? await obj.json() : []
 
-  const cards = entries.map(e => `
-    <a class="card" href="/${e.slug}">
+  // Sort: published first, then sold
+  const sorted = entries.sort((a, b) => {
+    if (a.status === 'sold' && b.status !== 'sold') return 1
+    if (a.status !== 'sold' && b.status === 'sold') return -1
+    return 0 // preserve existing order within same status
+  })
+
+  const cards = sorted.map(e => {
+    const isSold = e.status === 'sold'
+    return `
+    <a class="card${isSold ? ' card-sold' : ''}" href="/${e.slug}">
       <div class="card-img">
         ${e.heroUrl ? `<img src="${e.heroUrl}" alt="${e.name}" loading="lazy">` : '<div class="card-img-placeholder"></div>'}
         <div class="card-img-grad"></div>
+        ${isSold ? '<div class="card-sold-badge sans">SOLD</div>' : ''}
       </div>
       <div class="card-body">
         <p class="card-year sans">${e.year}</p>
         <h2 class="card-name en">${e.name}</h2>
         ${e.nameJa ? `<p class="card-name-ja">${e.nameJa}</p>` : ''}
-        <p class="card-price en">${e.price}</p>
+        <p class="card-price en">${isSold ? 'SOLD' : e.price}</p>
       </div>
-    </a>`).join('')
+    </a>`
+  }).join('')
 
   const html = `<!DOCTYPE html>
 <html lang="ja">
@@ -86,6 +97,9 @@ img{display:block;width:100%;height:100%;object-fit:cover}
 .card-name{font-family:'Satoshi',sans-serif;font-weight:700;letter-spacing:-0.02em;font-size:clamp(18px,2vw,26px);line-height:1.1;color:#F5F5F0;margin-bottom:6px}
 .card-name-ja{font-family:'Shippori Mincho B1',serif;font-weight:200;font-size:11px;color:rgba(245,245,240,0.3);letter-spacing:0.2em;margin-bottom:10px}
 .card-price{font-family:'Satoshi',sans-serif;font-weight:300;font-size:clamp(14px,1.5vw,18px);color:rgba(245,245,240,0.55)}
+.card-sold{opacity:0.6}
+.card-sold:hover{opacity:0.5}
+.card-sold-badge{position:absolute;top:12px;right:12px;background:rgba(10,10,10,0.75);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.15);padding:4px 14px;font-size:10px;letter-spacing:0.25em;color:rgba(255,255,255,0.6);z-index:2}
 
 /* FOOTER */
 footer{border-top:1px solid rgba(255,255,255,0.05);padding:40px clamp(24px,5vw,80px);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px}
@@ -168,7 +182,7 @@ app.get('/api/image/:key{.+}', async (c) => {
       jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
       webp: 'image/webp', gif: 'image/gif', svg: 'image/svg+xml',
       heic: 'image/heic', heif: 'image/heif', avif: 'image/avif',
-      mp3: 'audio/mpeg', json: 'application/json', html: 'text/html',
+      mp3: 'audio/mpeg', mp4: 'video/mp4', json: 'application/json', html: 'text/html',
     }
     headers.set('content-type', mimeMap[ext ?? ''] ?? 'image/jpeg')
   }
