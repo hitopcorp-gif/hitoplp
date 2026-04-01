@@ -38,18 +38,11 @@ export async function mergeVideoAudio(
     fetchFile(audioUrl),
   ])
 
-  console.log('[merge] video size:', videoData.byteLength, 'audio size:', audioData.byteLength)
-
   await ff.writeFile('input.mp4', videoData)
   await ff.writeFile('input.mp3', audioData)
 
-  // FFmpegログを出力
-  ff.on('log', ({ message }) => {
-    console.log('[ffmpeg]', message)
-  })
-
   onProgress?.('動画と音声を結合中...')
-  const exitCode = await ff.exec([
+  await ff.exec([
     '-i', 'input.mp4',
     '-i', 'input.mp3',
     '-c:v', 'copy',
@@ -61,7 +54,6 @@ export async function mergeVideoAudio(
     '-y',
     'output.mp4',
   ])
-  console.log('[merge] FFmpeg exit code:', exitCode)
 
   const data = await ff.readFile('output.mp4')
   const blob = new Blob([data], { type: 'video/mp4' })
