@@ -78,20 +78,19 @@ export function VehicleDetailPage() {
       if (nextStatus === 'published' && vehicle.generatedContent) {
         const content = editedContent ?? vehicle.generatedContent
 
-        // TTS音声生成（並行・失敗しても公開は止めない）
-        setPublishPhase('音声生成中...')
+        // TTS音声生成（既にaudioUrlがあればスキップ）
         let audioUrl = vehicle.audioUrl ?? ''
-        const ttsPromise = content.narrationText
-          ? generateNarration(content.narrationText, vehicle.slug)
-              .then(url => { audioUrl = url })
-              .catch(e => console.error('TTS skipped:', e))
-          : Promise.resolve()
+        if (!audioUrl && content.narrationText) {
+          setPublishPhase('音声生成中...')
+          try {
+            audioUrl = await generateNarration(content.narrationText, vehicle.slug)
+          } catch (e) {
+            console.error('TTS skipped:', e)
+          }
+        }
 
         const vehicleWithAudio = { ...vehicle, detailPhotoUrls: detailPhotoUrls ?? vehicle.detailPhotoUrls, audioUrl }
-
-        // TTS完了を待ってからHTML生成（audioUrlをHTMLに埋め込むため）
-        await ttsPromise
-        vehicleWithAudio.audioUrl = audioUrl
+        console.log('[publish] audioUrl:', audioUrl, 'vehicle.audioUrl:', vehicle.audioUrl)
 
         setPublishPhase('LP生成中...')
         const html = generateLpHtml(vehicleWithAudio, content, false)
