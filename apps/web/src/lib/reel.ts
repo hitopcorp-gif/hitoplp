@@ -19,8 +19,8 @@ Rules:
 - Maintain sharp edges, reflections, and fine details of the original image`
 
 // 2カット構成: 前半=オービット、後半=ズームイン
-const REEL_CUT_1 = 'Slow cinematic camera orbit around a luxury car. Premium studio lighting with sharp reflections on bodywork. High detail, photorealistic, 4K quality. No text, no people, no watermarks.'
-const REEL_CUT_2 = 'Smooth cinematic camera slowly zooming into the front details of a luxury car. Focus on headlights, grille, and badge. Premium studio lighting with sharp reflections. High detail, photorealistic, 4K quality. No text, no people, no watermarks.'
+const REEL_CUT_1 = 'Slow cinematic camera orbit around a luxury car. Premium studio lighting with sharp reflections on bodywork. Keep the wall-mounted logo and shield sign visible at all times. High detail, photorealistic, 4K quality. No text, no people, no watermarks.'
+const REEL_CUT_2 = 'Smooth cinematic camera slowly zooming into the front details of a luxury car. Focus on headlights, grille, and badge. Keep the wall-mounted logo and shield sign visible in the background. Premium studio lighting with sharp reflections. High detail, photorealistic, 4K quality. No text, no people, no watermarks.'
 const REEL_NEGATIVE = 'blur, distort, low quality, text, watermark, people, cartoon, anime, drawing'
 
 /**
