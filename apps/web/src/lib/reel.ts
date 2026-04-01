@@ -70,14 +70,15 @@ export async function generateReelVideo(
 ): Promise<string> {
   if (!FAL_KEY) throw new Error('FAL_KEY が設定されていません')
 
-  onProgress?.('リール動画を生成中（3〜6分）...')
+  onProgress?.('リール動画を生成中（5〜10分）...')
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result = await fal.subscribe('fal-ai/kling-video/v2.5-turbo/pro/image-to-video' as any, {
+  const result = await fal.subscribe('fal-ai/kling-video/v2.5/pro/image-to-video' as any, {
     input: {
       prompt: REEL_PROMPT,
       image_url: verticalImageUrl,
       duration: '10',
+      aspect_ratio: '9:16',
     },
   })
 

@@ -1076,6 +1076,20 @@ function SnsTab({ vehicle, vehicleId }: { vehicle: Vehicle; vehicleId: string })
     try {
       const res = await fetch(url)
       const blob = await res.blob()
+
+      // モバイル: Web Share API で写真アプリに保存可能
+      if (navigator.share && /iPhone|iPad|Android/i.test(navigator.userAgent)) {
+        const ext = filename.split('.').pop()?.toLowerCase()
+        const mimeMap: Record<string, string> = { mp4: 'video/mp4', mp3: 'audio/mpeg', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png' }
+        const mime = mimeMap[ext ?? ''] ?? blob.type
+        const file = new File([blob], filename, { type: mime })
+        if (navigator.canShare?.({ files: [file] })) {
+          await navigator.share({ files: [file] })
+          return
+        }
+      }
+
+      // デスクトップ: ダウンロードフォルダに保存
       const blobUrl = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = blobUrl
