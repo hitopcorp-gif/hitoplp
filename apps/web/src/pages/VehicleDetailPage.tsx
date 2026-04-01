@@ -10,9 +10,10 @@ import { generateLpHtml } from '@/lib/lp-generator'
 import { generateNarration } from '@/lib/tts'
 import { generateVerticalImage, generateReelVideo } from '@/lib/reel'
 import { generateFeedImage, generateOgpImage } from '@/lib/sns-image'
+import { mergeVideoAudio } from '@/lib/merge-video'
 import {
   ChevronLeft, Eye, Globe, RotateCcw, BadgeCheck, Edit, Sparkles, Check, Trash2, ChevronDown, Volume2,
-  Video, Image, Copy, Download, Play, RefreshCw, Instagram
+  Video, Image, Copy, Download, Play, RefreshCw, Instagram, Film
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -963,6 +964,9 @@ function SnsTab({ vehicle, vehicleId }: { vehicle: Vehicle; vehicleId: string })
 
   const [copied, setCopied] = useState('')
   const [savedCaption, setSavedCaption] = useState(false)
+  const [mergingVideo, setMergingVideo] = useState(false)
+  const [mergePhase, setMergePhase] = useState('')
+  const [mergeError, setMergeError] = useState('')
 
   const heroUrl = vehicle.photos.find(p => p.tag === 'hero')?.url ?? vehicle.photos[0]?.url ?? ''
   const isPublished = vehicle.status === 'published' || vehicle.status === 'sold'
@@ -1064,6 +1068,41 @@ function SnsTab({ vehicle, vehicleId }: { vehicle: Vehicle; vehicleId: string })
     })
     setSavedCaption(true)
     setTimeout(() => setSavedCaption(false), 2500)
+  }
+
+  async function handleMergeDownload() {
+    if (!reelVideoUrl || !reelAudioUrl) return
+    setMergingVideo(true)
+    setMergeError('')
+    try {
+      const blob = await mergeVideoAudio(reelVideoUrl, reelAudioUrl, setMergePhase)
+
+      // モバイル: Web Share API で写真アプリに保存
+      if (navigator.share && /iPhone|iPad|Android/i.test(navigator.userAgent)) {
+        const file = new File([blob], `${vehicle.slug}-reel-final.mp4`, { type: 'video/mp4' })
+        if (navigator.canShare?.({ files: [file] })) {
+          await navigator.share({ files: [file] })
+          setMergingVideo(false)
+          return
+        }
+      }
+
+      // デスクトップ: ダウンロード
+      const blobUrl = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = blobUrl
+      a.download = `${vehicle.slug}-reel-final.mp4`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(blobUrl)
+    } catch (e) {
+      console.error('Merge error:', e)
+      setMergeError(e instanceof Error ? e.message : '結合に失敗しました')
+    } finally {
+      setMergingVideo(false)
+      setMergePhase('')
+    }
   }
 
   function copyText(text: string, label: string) {
@@ -1184,6 +1223,29 @@ function SnsTab({ vehicle, vehicleId }: { vehicle: Vehicle; vehicleId: string })
           {reelError && <p className="text-xs text-red-400 border border-red-900/40 bg-red-900/10 px-3 py-2">{reelError}</p>}
         </div>
       </div>
+
+      {/* ── 結合済みリール動画 ── */}
+      {reelVideoUrl && reelAudioUrl && (
+        <div className="border border-brand-gold/20 bg-brand-gold/5">
+          <div className="px-5 py-4 border-b border-brand-gold/10 flex items-center gap-2">
+            <Film className="w-4 h-4 text-brand-gold/60" />
+            <span className="text-xs tracking-widest text-white/50 uppercase">結合済みリール（動画+音声）</span>
+          </div>
+          <div className="p-5 space-y-3">
+            <p className="text-xs text-white/40">動画とナレーションを1つのファイルに結合してダウンロード。そのままInstagramに投稿できます。</p>
+            <div className="flex items-center gap-3">
+              <Button size="sm" onClick={handleMergeDownload} disabled={mergingVideo}>
+                {mergingVideo ? (
+                  <><RefreshCw className="w-3.5 h-3.5 animate-spin" /> {mergePhase || '結合中...'}</>
+                ) : (
+                  <><Download className="w-3.5 h-3.5" /> 結合してダウンロード</>
+                )}
+              </Button>
+            </div>
+            {mergeError && <p className="text-xs text-red-400 border border-red-900/40 bg-red-900/10 px-3 py-2">{mergeError}</p>}
+          </div>
+        </div>
+      )}
 
       {/* ── リールナレーション ── */}
       <div className="border border-white/10">
