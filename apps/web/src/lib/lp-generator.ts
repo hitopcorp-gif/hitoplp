@@ -39,7 +39,9 @@ function splitIntoLines(name: string, threshold = 25): string[] {
 }
 
 // Split vehicle name into display lines: brand/model lines (bold) + grade line (thin)
-function splitVehicleName(name: string): string[] {
+type TitleLine = { text: string; type: 'brand' | 'trim' | 'grade' }
+
+function splitVehicleName(name: string): TitleLine[] {
   const words = name.split(' ')
   // Detect grade start: word at index >= 2 that looks like a grade code (e.g. G65, 500h, AMG at end)
   const isGradeWord = (w: string) => /^[A-Z]\d/.test(w) || /^\d/.test(w)
@@ -47,10 +49,20 @@ function splitVehicleName(name: string): string[] {
   for (let i = 2; i < words.length; i++) {
     if (isGradeWord(words[i])) { gradeIdx = i; break }
   }
-  if (gradeIdx === -1) return splitIntoLines(name)
+  if (gradeIdx === -1) {
+    return splitIntoLines(name).map(t => ({ text: t, type: 'brand' }))
+  }
   const modelPart = words.slice(0, gradeIdx).join(' ')
   const gradePart = words.slice(gradeIdx).join(' ')
-  return [...splitIntoLines(modelPart, 14), gradePart]
+  const modelLines = splitIntoLines(modelPart, 14)
+  // If last model line is a single word (trim name like "Autobiography"), mark it as trim
+  const result: TitleLine[] = []
+  for (let i = 0; i < modelLines.length; i++) {
+    const isTrim = i === modelLines.length - 1 && modelLines.length > 2 && modelLines[i].split(' ').length === 1
+    result.push({ text: modelLines[i], type: isTrim ? 'trim' : 'brand' })
+  }
+  result.push({ text: gradePart, type: 'grade' })
+  return result
 }
 
 export function generateLpHtml(vehicle: Vehicle, content: GeneratedContent, preview = false): string {
@@ -208,12 +220,12 @@ a { color: inherit; text-decoration: none; }
 /* ── HERO ── */
 .hero { position: relative; height: 100vh; height: 100dvh; min-height: 640px; overflow: hidden; display: flex; align-items: flex-end; }
 .hero-bg { position: absolute; inset: 0; will-change: transform; }
-.hero-bg img { width: 100%; height: 125%; object-fit: cover; object-position: center 65%; filter: brightness(0.5); }
+.hero-bg img { width: 100%; height: 125%; object-fit: cover; object-position: center 72%; filter: brightness(0.4); }
 .hero-grain {
   position: absolute; inset: 0; pointer-events: none; opacity: 0.18;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
 }
-.hero-grad { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,0.08) 0%, transparent 30%, rgba(0,0,0,0.22) 58%, rgba(0,0,0,0.92) 100%); }
+.hero-grad { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.82) 6%, rgba(0,0,0,0.3) 18%, rgba(0,0,0,0.05) 30%, transparent 40%, rgba(0,0,0,0.18) 55%, rgba(0,0,0,0.92) 100%); }
 .hero-content { position: relative; z-index: 2; width: 100%; padding: clamp(48px, 8vh, 80px) clamp(24px, 5vw, 72px) clamp(80px, 14vh, 148px); }
 .hero-label {
   font-family: 'Noto Sans JP', sans-serif; font-size: 8px;
@@ -233,9 +245,11 @@ a { color: inherit; text-decoration: none; }
   transform: ${preview ? 'none' : 'translateY(105%)'};
   transition: transform 1.0s var(--ease);
 }
-.hero-name-line:not(:first-child):last-child { font-family: 'Satoshi', sans-serif; font-weight: 300; font-style: normal; font-size: 0.46em; letter-spacing: 0.01em; color: rgba(255,255,255,0.82); }
+.hero-name-line.hero-trim { font-weight: 300; font-size: 0.6em; letter-spacing: 0.06em; color: rgba(255,255,255,0.85); margin-top: 4px; }
+.hero-name-line.hero-grade { font-family: 'Satoshi', sans-serif; font-weight: 300; font-style: normal; font-size: 0.42em; letter-spacing: 0.01em; color: rgba(255,255,255,0.75); margin-top: 6px; }
 .hero-name-line:nth-child(2) { transition-delay: 0.1s; }
 .hero-name-line:nth-child(3) { transition-delay: 0.2s; }
+.hero-name-line:nth-child(4) { transition-delay: 0.3s; }
 .hero-name-ja {
   font-family: 'Shippori Mincho B1', serif; font-weight: 200;
   font-size: clamp(10px, 0.9vw, 12px); color: rgba(255,255,255,0.7);
@@ -453,7 +467,7 @@ footer { border-top: 1px solid rgba(255,255,255,0.05); padding: 56px 0; }
   <div class="hero-content">
     <p class="hero-label sans">HI-TOP Journal — ${basicInfo.year}</p>
     <h1 class="hero-name en">
-      ${titleLines.map((line) => `<span class="hero-name-line">${line}</span>`).join('\n      ')}
+      ${titleLines.map((l) => `<span class="hero-name-line${l.type === 'trim' ? ' hero-trim' : l.type === 'grade' ? ' hero-grade' : ''}">${l.text}</span>`).join('\n      ')}
     </h1>
     ${content.nameJa ? `<p class="hero-name-ja">${content.nameJa}</p>` : ''}
     <div class="hero-foot">
