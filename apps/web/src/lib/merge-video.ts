@@ -42,14 +42,15 @@ export async function mergeVideoAudio(
   await ff.writeFile('input.mp3', audioData)
 
   onProgress?.('動画と音声を結合中...')
-  // -c copy: 再エンコードなし（高速）
+  // -c:v copy: 映像は再エンコードなし
+  // -c:a aac: MP3→AAC変換（MP4コンテナとの互換性のため）
   // -shortest: 短い方に合わせる
-  // -map 0:v: 動画トラック
-  // -map 1:a: 音声トラック
   await ff.exec([
     '-i', 'input.mp4',
     '-i', 'input.mp3',
-    '-c', 'copy',
+    '-c:v', 'copy',
+    '-c:a', 'aac',
+    '-b:a', '192k',
     '-map', '0:v',
     '-map', '1:a',
     '-shortest',
