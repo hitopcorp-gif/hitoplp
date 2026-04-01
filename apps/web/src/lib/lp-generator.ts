@@ -429,6 +429,10 @@ footer { border-top: 1px solid rgba(255,255,255,0.05); padding: 56px 0; }
     <div class="s-line"></div>
     <span>Scroll</span>
   </div>
+${vehicle.audioUrl ? `  <button id="hero-audio-cta" class="hero-audio-cta">
+    <span class="eq-bars"><span></span><span></span><span></span><span></span><span></span></span>
+    <span class="hero-audio-label sans">Listen to this story</span>
+  </button>` : ''}
 </section>
 
 ${mobileStripPhotos.length > 0 ? `
@@ -617,18 +621,86 @@ ${content.pullQuote2 ? `<div class="pq">
 })()
 </script>
 ${vehicle.audioUrl ? `
-<!-- Audio Player -->
-<button id="audio-trigger" style="position:fixed;bottom:24px;right:clamp(24px,5vw,60px);z-index:89;background:rgba(10,10,10,0.85);backdrop-filter:blur(12px);border:1px solid rgba(var(--accent-rgb),0.25);color:#F5F5F0;width:48px;height:48px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.3s ease;">
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="8" r="5"/><path d="M2 21v-1a7 7 0 0 1 7-7h2a7 7 0 0 1 7 7v1"/><path d="M18 8.5c.5.5 1 1.5 1 3s-.5 2.5-1 3"/><path d="M21 6c1 1 2 3 2 5.5s-1 4.5-2 5.5"/></svg>
-</button>
-<div id="audio-bar" style="position:fixed;bottom:0;left:0;right:0;z-index:90;background:rgba(10,10,10,0.95);backdrop-filter:blur(16px);border-top:1px solid rgba(255,255,255,0.06);padding:14px clamp(24px,5vw,60px);display:flex;align-items:center;gap:16px;transform:translateY(100%);transition:transform 0.4s cubic-bezier(0.16,1,0.3,1);">
+<!-- Audio Player Styles -->
+<style>
+/* ── Equalizer bars animation ── */
+@keyframes eq1{0%,100%{height:3px}50%{height:14px}}
+@keyframes eq2{0%,100%{height:8px}50%{height:4px}}
+@keyframes eq3{0%,100%{height:5px}50%{height:16px}}
+@keyframes eq4{0%,100%{height:10px}50%{height:3px}}
+@keyframes eq5{0%,100%{height:4px}50%{height:12px}}
+@keyframes pulse-ring{0%{transform:scale(1);opacity:0.4}100%{transform:scale(2.2);opacity:0}}
+@keyframes float-in{0%{opacity:0;transform:translateY(20px)}100%{opacity:1;transform:translateY(0)}}
+
+.eq-bars{display:flex;align-items:flex-end;gap:2px;height:16px}
+.eq-bars span{display:block;width:2.5px;border-radius:1px;background:var(--accent)}
+.eq-bars span:nth-child(1){animation:eq1 0.8s ease-in-out infinite}
+.eq-bars span:nth-child(2){animation:eq2 0.6s ease-in-out infinite 0.1s}
+.eq-bars span:nth-child(3){animation:eq3 0.9s ease-in-out infinite 0.15s}
+.eq-bars span:nth-child(4){animation:eq4 0.7s ease-in-out infinite 0.05s}
+.eq-bars span:nth-child(5){animation:eq5 0.85s ease-in-out infinite 0.2s}
+
+/* ── Hero CTA ── */
+.hero-audio-cta{
+  position:absolute;bottom:clamp(80px,12vh,120px);left:clamp(24px,5vw,80px);
+  z-index:10;display:flex;align-items:center;gap:12px;
+  background:rgba(10,10,10,0.6);backdrop-filter:blur(16px);
+  border:1px solid rgba(var(--accent-rgb),0.3);border-radius:40px;
+  padding:12px 24px 12px 18px;cursor:pointer;color:#F5F5F0;
+  animation:float-in 0.8s ease 1.2s both;transition:all 0.3s ease;
+}
+.hero-audio-cta:hover{background:rgba(10,10,10,0.8);border-color:rgba(var(--accent-rgb),0.6);transform:scale(1.03)}
+.hero-audio-label{font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(255,255,255,0.7)}
+
+/* ── Floating trigger (appears on scroll) ── */
+.audio-float{
+  position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);
+  z-index:89;display:flex;align-items:center;gap:10px;
+  background:rgba(10,10,10,0.9);backdrop-filter:blur(16px);
+  border:1px solid rgba(var(--accent-rgb),0.25);border-radius:40px;
+  padding:10px 22px 10px 16px;cursor:pointer;color:#F5F5F0;
+  opacity:0;pointer-events:none;
+  transition:transform 0.5s cubic-bezier(0.16,1,0.3,1),opacity 0.4s ease;
+}
+.audio-float.visible{transform:translateX(-50%) translateY(0);opacity:1;pointer-events:auto}
+.audio-float::before{
+  content:'';position:absolute;inset:-3px;border-radius:44px;
+  background:radial-gradient(ellipse,rgba(var(--accent-rgb),0.3),transparent 70%);
+  animation:pulse-ring 2.5s ease-out infinite;z-index:-1;
+}
+.audio-float:hover{border-color:rgba(var(--accent-rgb),0.5);background:rgba(10,10,10,0.95)}
+.audio-float-label{font-size:10px;letter-spacing:0.15em;color:rgba(255,255,255,0.6);font-family:'Satoshi',sans-serif}
+
+/* ── Bottom bar ── */
+.audio-bar{
+  position:fixed;bottom:0;left:0;right:0;z-index:90;
+  background:rgba(10,10,10,0.95);backdrop-filter:blur(16px);
+  border-top:1px solid rgba(255,255,255,0.06);
+  padding:14px clamp(24px,5vw,60px);
+  display:flex;align-items:center;gap:16px;
+  transform:translateY(100%);transition:transform 0.4s cubic-bezier(0.16,1,0.3,1);
+}
+.audio-bar.open{transform:translateY(0)}
+.audio-bar .eq-bars span{background:#F5F5F0;opacity:0.5}
+.audio-bar.playing .eq-bars span{opacity:1;background:var(--accent)}
+</style>
+
+<!-- Floating trigger (scroll) -->
+<div id="audio-float" class="audio-float">
+  <span class="eq-bars"><span></span><span></span><span></span><span></span><span></span></span>
+  <span class="audio-float-label">LISTEN</span>
+</div>
+
+<!-- Bottom playback bar -->
+<div id="audio-bar" class="audio-bar">
   <button id="audio-toggle" style="background:none;border:1px solid rgba(var(--accent-rgb),0.3);color:#F5F5F0;width:40px;height:40px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.3s ease;flex-shrink:0;">
     <svg id="play-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-    <svg id="pause-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+    <svg id="pause-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="display:none"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
   </button>
+  <span class="eq-bars" id="bar-eq" style="flex-shrink:0"><span></span><span></span><span></span><span></span><span></span></span>
   <div style="flex:1;display:flex;flex-direction:column;gap:4px;min-width:0;">
     <div style="display:flex;justify-content:space-between;align-items:center;">
-      <span style="font-family:'Noto Sans JP',sans-serif;font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:0.15em;">この記事を聴く</span>
+      <span style="font-family:'Satoshi',sans-serif;font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:0.15em;text-transform:uppercase">Now Playing</span>
       <span id="audio-time" style="font-family:'Satoshi',sans-serif;font-size:10px;color:rgba(255,255,255,0.25);">0:00 / 0:00</span>
     </div>
     <div id="audio-progress-bar" style="width:100%;height:2px;background:rgba(255,255,255,0.08);border-radius:1px;cursor:pointer;position:relative;">
@@ -639,20 +711,38 @@ ${vehicle.audioUrl ? `
     <svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
   </button>
 </div>
+
 <script>
 (function(){
   var a=new Audio('${vehicle.audioUrl}');
-  var bar=document.getElementById('audio-bar'),trigger=document.getElementById('audio-trigger');
+  var bar=document.getElementById('audio-bar'),barEq=document.getElementById('bar-eq');
+  var heroCta=document.getElementById('hero-audio-cta'),floatBtn=document.getElementById('audio-float');
   var toggle=document.getElementById('audio-toggle'),playI=document.getElementById('play-icon'),pauseI=document.getElementById('pause-icon');
   var prog=document.getElementById('audio-progress'),progBar=document.getElementById('audio-progress-bar'),timeD=document.getElementById('audio-time');
+  var isOpen=false,heroH=document.getElementById('hero').offsetHeight;
+
   function fmt(s){var m=Math.floor(s/60),sec=Math.floor(s%60);return m+':'+(sec<10?'0':'')+sec;}
-  function show(){bar.style.transform='translateY(0)';trigger.style.display='none';}
-  function hide(){bar.style.transform='translateY(100%)';trigger.style.display='flex';a.pause();playI.style.display='block';pauseI.style.display='none';}
-  trigger.onclick=function(){show();a.play();playI.style.display='none';pauseI.style.display='block';};
-  toggle.onclick=function(){if(a.paused){a.play();playI.style.display='none';pauseI.style.display='block';}else{a.pause();playI.style.display='block';pauseI.style.display='none';}};
-  document.getElementById('audio-close').onclick=hide;
+
+  function openBar(){isOpen=true;bar.classList.add('open');floatBtn.classList.remove('visible');if(heroCta)heroCta.style.display='none';}
+  function closeBar(){isOpen=false;bar.classList.remove('open');bar.classList.remove('playing');a.pause();playI.style.display='block';pauseI.style.display='none';checkFloat();}
+  function play(){a.play();playI.style.display='none';pauseI.style.display='block';bar.classList.add('playing');}
+  function pause(){a.pause();playI.style.display='block';pauseI.style.display='none';bar.classList.remove('playing');}
+  function startPlay(){openBar();play();}
+
+  function checkFloat(){
+    if(isOpen)return;
+    if(window.scrollY>heroH*0.8){floatBtn.classList.add('visible');if(heroCta)heroCta.style.opacity='0';}
+    else{floatBtn.classList.remove('visible');if(heroCta)heroCta.style.opacity='1';}
+  }
+
+  window.addEventListener('scroll',checkFloat,{passive:true});
+
+  if(heroCta)heroCta.onclick=startPlay;
+  floatBtn.onclick=startPlay;
+  toggle.onclick=function(){if(a.paused)play();else pause();};
+  document.getElementById('audio-close').onclick=closeBar;
   a.ontimeupdate=function(){var p=(a.currentTime/a.duration)*100;prog.style.width=p+'%';timeD.textContent=fmt(a.currentTime)+' / '+fmt(a.duration);};
-  a.onended=function(){playI.style.display='block';pauseI.style.display='none';prog.style.width='0%';};
+  a.onended=function(){pause();prog.style.width='0%';};
   progBar.onclick=function(e){var r=progBar.getBoundingClientRect();a.currentTime=((e.clientX-r.left)/r.width)*a.duration;};
 })();
 </script>
