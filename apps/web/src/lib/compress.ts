@@ -2,10 +2,10 @@ import imageCompression from 'browser-image-compression'
 
 /**
  * LP用の画像圧縮。
- * - ヒーロー写真（フルブリード背景）: 最大幅2400px / quality 0.85
+ * - ヒーロー写真（フルブリード背景 + SNS素材のソース）: 最大幅3200px / quality 0.92
  * - その他: 最大幅1800px / quality 0.82
  * - WebPに変換（ブラウザ対応時）
- * - 最大ファイルサイズ: 800KB（ヒーロー）/ 500KB（その他）
+ * - 最大ファイルサイズ: 1.5MB（ヒーロー）/ 500KB（その他）
  * - 元画像が小さければ拡大しない
  */
 export async function compressForLp(
@@ -15,11 +15,11 @@ export async function compressForLp(
   const isHero = role === 'hero'
 
   const options = {
-    maxSizeMB: isHero ? 0.8 : 0.5,
-    maxWidthOrHeight: isHero ? 2400 : 1800,
+    maxSizeMB: isHero ? 1.5 : 0.5,
+    maxWidthOrHeight: isHero ? 3200 : 1800,
     useWebWorker: true,
     fileType: 'image/webp' as const,
-    initialQuality: isHero ? 0.85 : 0.82,
+    initialQuality: isHero ? 0.92 : 0.82,
     preserveExif: false,
   }
 

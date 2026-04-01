@@ -6,7 +6,7 @@ if (FAL_KEY) {
   fal.config({ credentials: FAL_KEY })
 }
 
-const VERTICAL_PROMPT = `Extend this image vertically to 9:16 aspect ratio (1080x1920).
+const VERTICAL_PROMPT = `Extend this image vertically to 9:16 aspect ratio (1080x1920). High quality, photorealistic, sharp details.
 
 Rules:
 - Do NOT crop, resize, or modify the car in any way
@@ -15,9 +15,10 @@ Rules:
 - Only extend the background upward and downward
 - Keep the exact same studio background color, lighting, and floor reflection
 - The car must remain fully visible with no parts cut off
-- Center the car vertically in the final image`
+- Center the car vertically in the final image
+- Maintain sharp edges, reflections, and fine details of the original image`
 
-const REEL_PROMPT = 'Slow cinematic camera movement. Studio lighting with subtle reflections. No text, no people.'
+const REEL_PROMPT = 'Slow cinematic camera orbit around a luxury car. Premium studio lighting with sharp reflections on bodywork. High detail, photorealistic, 4K quality. No text, no people, no watermarks.'
 
 /**
  * Step 1: 横長ヒーロー写真 → 縦長9:16画像に背景拡張
