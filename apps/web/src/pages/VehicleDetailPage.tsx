@@ -989,6 +989,7 @@ function SnsTab({ vehicle, vehicleId }: { vehicle: Vehicle; vehicleId: string })
       await updateDoc(doc(db, 'vehicles', vehicleId), { reelVideoUrl: videoUrl })
       setReelPhase('')
     } catch (e) {
+      console.error('Reel generation error:', e)
       setReelError(e instanceof Error ? e.message : 'リール動画の生成に失敗しました')
       setReelPhase('')
     } finally {
@@ -1071,14 +1072,22 @@ function SnsTab({ vehicle, vehicleId }: { vehicle: Vehicle; vehicleId: string })
     setTimeout(() => setCopied(''), 2000)
   }
 
-  function downloadUrl(url: string, filename: string) {
-    const a = document.createElement('a')
-    a.href = url
-    a.download = filename
-    a.target = '_blank'
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
+  async function downloadUrl(url: string, filename: string) {
+    try {
+      const res = await fetch(url)
+      const blob = await res.blob()
+      const blobUrl = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = blobUrl
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(blobUrl)
+    } catch {
+      // Fallback: open in new tab
+      window.open(url, '_blank')
+    }
   }
 
   if (!isPublished) {
