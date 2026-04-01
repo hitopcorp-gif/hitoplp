@@ -987,7 +987,7 @@ function SnsTab({ vehicle, vehicleId }: { vehicle: Vehicle; vehicleId: string })
       }
 
       // Step 2: リール動画生成
-      setReelPhase('リール動画を生成中（3〜6分）...')
+      setReelPhase('リール動画を生成中（5〜10分）...')
       const videoUrl = await generateReelVideo(vUrl, vehicle.slug, setReelPhase)
       setReelVideoUrl(videoUrl)
       await updateDoc(doc(db, 'vehicles', vehicleId), { reelVideoUrl: videoUrl })
@@ -1207,7 +1207,7 @@ function SnsTab({ vehicle, vehicleId }: { vehicle: Vehicle; vehicleId: string })
                   >
                     {reelPhase || '生成中...'}
                   </motion.p>
-                  <p className="text-xs text-white/25">動画生成には3〜6分かかります</p>
+                  <p className="text-xs text-white/25">動画生成には5〜10分かかります</p>
                 </div>
               ) : (
                 <>

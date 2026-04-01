@@ -18,7 +18,10 @@ Rules:
 - Center the car vertically in the final image
 - Maintain sharp edges, reflections, and fine details of the original image`
 
-const REEL_PROMPT = 'Slow cinematic camera orbit around a luxury car. Premium studio lighting with sharp reflections on bodywork. High detail, photorealistic, 4K quality. No text, no people, no watermarks.'
+// 2カット構成: 前半=オービット、後半=ズームイン
+const REEL_CUT_1 = 'Slow cinematic camera orbit around a luxury car. Premium studio lighting with sharp reflections on bodywork. High detail, photorealistic, 4K quality. No text, no people, no watermarks.'
+const REEL_CUT_2 = 'Smooth cinematic camera slowly zooming into the front details of a luxury car. Focus on headlights, grille, and badge. Premium studio lighting with sharp reflections. High detail, photorealistic, 4K quality. No text, no people, no watermarks.'
+const REEL_NEGATIVE = 'blur, distort, low quality, text, watermark, people, cartoon, anime, drawing'
 
 /**
  * Step 1: 横長ヒーロー写真 → 縦長9:16画像に背景拡張
@@ -61,8 +64,10 @@ export async function generateVerticalImage(
 }
 
 /**
- * Step 2: 縦長画像 → 10秒リール動画
- * fal.ai Kling 2.5 Turbo を使用
+ * Step 2: 縦長画像 → 15秒リール動画（2カット構成）
+ * fal.ai Kling v3 Pro を使用
+ * カット1: 8秒 オービット（車の周りを回る）
+ * カット2: 7秒 ズームイン（フロント詳細に寄る）
  */
 export async function generateReelVideo(
   verticalImageUrl: string,
@@ -76,9 +81,14 @@ export async function generateReelVideo(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const result = await fal.subscribe('fal-ai/kling-video/v3/pro/image-to-video' as any, {
     input: {
-      prompt: REEL_PROMPT,
-      image_url: verticalImageUrl,
-      duration: '10',
+      start_image_url: verticalImageUrl,
+      multi_prompt: [
+        { prompt: REEL_CUT_1, duration: '8' },
+        { prompt: REEL_CUT_2, duration: '7' },
+      ],
+      shot_type: 'customize',
+      negative_prompt: REEL_NEGATIVE,
+      generate_audio: false,
       aspect_ratio: '9:16',
     },
   })
