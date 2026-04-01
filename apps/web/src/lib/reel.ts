@@ -18,9 +18,7 @@ Rules:
 - Center the car vertically in the final image
 - Maintain sharp edges, reflections, and fine details of the original image`
 
-// 2カット構成: 前半=オービット、後半=ズームイン
-const REEL_CUT_1 = 'Slow cinematic camera orbit around a luxury car. Premium studio lighting with sharp reflections on bodywork. Keep the wall-mounted logo and shield sign visible at all times. High detail, photorealistic, 4K quality. No text, no people, no watermarks.'
-const REEL_CUT_2 = 'Smooth cinematic camera slowly zooming into the front details of a luxury car. Focus on headlights, grille, and badge. Keep the wall-mounted logo and shield sign visible in the background. Premium studio lighting with sharp reflections. High detail, photorealistic, 4K quality. No text, no people, no watermarks.'
+const REEL_PROMPT = 'Cinematic luxury car showcase. First half: slow camera orbit around the car showing the full body and studio environment. Second half: camera smoothly zooms in toward the front, focusing on headlights, grille and badge details. Keep the wall-mounted logo and shield sign visible throughout. Premium studio lighting with sharp reflections on bodywork. High detail, photorealistic, 4K quality. No text, no people, no watermarks.'
 const REEL_NEGATIVE = 'blur, distort, low quality, text, watermark, people, cartoon, anime, drawing'
 
 /**
@@ -81,12 +79,9 @@ export async function generateReelVideo(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const result = await fal.subscribe('fal-ai/kling-video/v3/pro/image-to-video' as any, {
     input: {
-      start_image_url: verticalImageUrl,
-      multi_prompt: [
-        { prompt: REEL_CUT_1, duration: '8' },
-        { prompt: REEL_CUT_2, duration: '7' },
-      ],
-      shot_type: 'customize',
+      prompt: REEL_PROMPT,
+      image_url: verticalImageUrl,
+      duration: '15',
       negative_prompt: REEL_NEGATIVE,
       generate_audio: false,
       aspect_ratio: '9:16',
