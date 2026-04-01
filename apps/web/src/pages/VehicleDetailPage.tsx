@@ -170,6 +170,15 @@ export function VehicleDetailPage() {
     try { await updateLpIndex(API_BASE, vehicle.slug, null) } catch { /* best effort */ }
   }
 
+  async function handleRestoreFromSold() {
+    if (!id || !vehicle) return
+    await updateDoc(doc(db, 'vehicles', id), {
+      status: 'draft',
+      updatedAt: serverTimestamp(),
+    })
+    setVehicle((prev) => prev ? { ...prev, status: 'draft' } : prev)
+  }
+
   async function handleRegenerate() {
     if (!vehicle) return
     setRegenerating(true)
@@ -236,7 +245,7 @@ export function VehicleDetailPage() {
         </Button>
         <div className="flex-1 min-w-0">
           <p className="text-xs tracking-[0.25em] text-white/40 uppercase truncate">
-            {vehicle.status === 'published' ? '公開中' : vehicle.status === 'sold' ? 'SOLD' : '下書き'}
+            {vehicle.status === 'published' ? '公開中' : vehicle.status === 'sold' ? '売約済み' : '下書き'}
           </p>
           <h1 className="font-cormorant text-xl font-light text-white truncate">{vehicle.basicInfo.name}</h1>
         </div>
@@ -261,11 +270,16 @@ export function VehicleDetailPage() {
           <Button variant="ghost" size="sm" onClick={handleDelete} className="text-white/20 hover:text-red-400 border-white/10">
             <Trash2 className="w-4 h-4" />
           </Button>
-          {vehicle.status !== 'sold' && (
+          {vehicle.status === 'sold' ? (
+            <Button variant="ghost" size="sm" onClick={handleRestoreFromSold} className="text-white/40 hover:text-white border-white/20">
+              <RotateCcw className="w-4 h-4" />
+              下書きに戻す
+            </Button>
+          ) : (
             <>
-              <Button variant="ghost" size="sm" onClick={handleMarkSold} className="text-white/40 hover:text-white border-white/20">
+              <Button variant="ghost" size="sm" onClick={handleMarkSold} className="text-white/40 hover:text-amber-400 border-white/20">
                 <BadgeCheck className="w-4 h-4" />
-                SOLD
+                売約済み
               </Button>
               <Button
                 variant={vehicle.status === 'published' ? 'secondary' : 'default'}

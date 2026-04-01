@@ -59,7 +59,7 @@ export function DashboardPage() {
           {[
             { label: '公開中', value: published.length },
             { label: '下書き', value: drafts.length },
-            { label: 'SOLD', value: sold.length },
+            { label: '売約済み', value: sold.length },
           ].map((stat) => (
             <div key={stat.label} className="border border-white/10 p-6">
               <p className="text-xs tracking-widest text-white/40 uppercase mb-2">{stat.label}</p>
@@ -133,8 +133,8 @@ function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
             </span>
           )}
           {vehicle.status === 'sold' && (
-            <span className="bg-white/20 text-white text-[10px] tracking-wider uppercase px-2 py-1 flex items-center gap-1">
-              <BadgeCheck className="w-3 h-3" /> SOLD
+            <span className="bg-amber-500/20 text-amber-300 text-[10px] tracking-wider px-2 py-1 flex items-center gap-1">
+              <BadgeCheck className="w-3 h-3" /> 売約済み
             </span>
           )}
           {vehicle.status === 'draft' && (
