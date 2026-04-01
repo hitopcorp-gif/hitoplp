@@ -33,6 +33,7 @@ interface Props {
 export function Step3Photos({ situation, onNext, defaultPhotos = [] }: Props) {
   const [photos, setPhotos] = useState<CarPhoto[]>(defaultPhotos)
   const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0, phase: '' as '' | 'compress' | 'upload' })
   const [uploadError, setUploadError] = useState('')
 
   const advice = PHOTO_ADVICE[situation]
@@ -44,14 +45,18 @@ export function Step3Photos({ situation, onNext, defaultPhotos = [] }: Props) {
     }
     setUploading(true)
     setUploadError('')
+    setUploadProgress({ current: 0, total: acceptedFiles.length, phase: 'compress' })
     const newPhotos: CarPhoto[] = []
     try {
       for (let i = 0; i < acceptedFiles.length; i++) {
         const file = acceptedFiles[i]
         const id = `${Date.now()}-${i}`
         const tag = guessTag(photos.length + i)
-        // LP品質を保ちつつ圧縮（ヒーロー写真は高品質設定）
+        // 圧縮フェーズ
+        setUploadProgress({ current: i + 1, total: acceptedFiles.length, phase: 'compress' })
         const compressed = await compressForLp(file, tag === 'hero' ? 'hero' : 'other')
+        // アップロードフェーズ
+        setUploadProgress({ current: i + 1, total: acceptedFiles.length, phase: 'upload' })
         const { key, url } = await uploadImageToR2(compressed)
         newPhotos.push({
           id,
@@ -66,6 +71,7 @@ export function Step3Photos({ situation, onNext, defaultPhotos = [] }: Props) {
       setUploadError(e instanceof Error ? e.message : 'アップロードに失敗しました')
     } finally {
       setUploading(false)
+      setUploadProgress({ current: 0, total: 0, phase: '' })
     }
   }, [photos.length])
 
@@ -118,24 +124,82 @@ export function Step3Photos({ situation, onNext, defaultPhotos = [] }: Props) {
       {/* Dropzone */}
       <div
         {...getRootProps()}
-        className={`border-2 border-dashed p-12 text-center cursor-pointer transition-all ${
+        className={`relative border-2 border-dashed p-12 text-center cursor-pointer transition-all overflow-hidden ${
           isDragActive
             ? 'border-brand-gold bg-brand-gold/5'
+            : uploading
+            ? 'border-brand-gold/40 cursor-default'
             : photos.length >= 15
             ? 'border-white/10 opacity-40 cursor-not-allowed'
             : 'border-white/20 hover:border-white/40'
         }`}
       >
         <input {...getInputProps()} />
-        <Upload className="w-8 h-8 text-white/30 mx-auto mb-4" />
         {uploading ? (
-          <p className="text-sm text-white/60">アップロード中...</p>
+          <div className="flex flex-col items-center gap-4">
+            {/* Animated spinner ring */}
+            <div className="relative w-16 h-16">
+              <motion.div
+                className="absolute inset-0 rounded-full border-2 border-brand-gold/20"
+              />
+              <motion.div
+                className="absolute inset-0 rounded-full border-2 border-transparent border-t-brand-gold"
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+              />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-xs font-mono text-brand-gold">
+                  {uploadProgress.current}/{uploadProgress.total}
+                </span>
+              </div>
+            </div>
+            {/* Progress bar */}
+            <div className="w-48 h-0.5 bg-white/10 rounded-full overflow-hidden">
+              <motion.div
+                className="h-full bg-brand-gold"
+                initial={{ width: '0%' }}
+                animate={{
+                  width: `${((uploadProgress.current - (uploadProgress.phase === 'compress' ? 0.5 : 0)) / uploadProgress.total) * 100}%`,
+                }}
+                transition={{ duration: 0.3, ease: 'easeOut' }}
+              />
+            </div>
+            {/* Status text */}
+            <motion.p
+              className="text-sm text-white/60"
+              key={`${uploadProgress.current}-${uploadProgress.phase}`}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              {uploadProgress.phase === 'compress'
+                ? `圧縮中... (${uploadProgress.current}/${uploadProgress.total})`
+                : `アップロード中... (${uploadProgress.current}/${uploadProgress.total})`
+              }
+            </motion.p>
+            {/* Pulsing background glow */}
+            <motion.div
+              className="absolute inset-0 bg-brand-gold/3 pointer-events-none"
+              animate={{ opacity: [0, 1, 0] }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+            />
+          </div>
         ) : isDragActive ? (
-          <p className="text-sm text-white/60">ここにドロップ</p>
+          <>
+            <motion.div
+              initial={{ scale: 1 }}
+              animate={{ scale: [1, 1.1, 1] }}
+              transition={{ duration: 1.2, repeat: Infinity }}
+            >
+              <Upload className="w-8 h-8 text-brand-gold mx-auto mb-4" />
+            </motion.div>
+            <p className="text-sm text-brand-gold">ここにドロップ</p>
+          </>
         ) : (
           <>
+            <Upload className="w-8 h-8 text-white/30 mx-auto mb-4" />
             <p className="text-sm text-white/60 mb-1">ドラッグ＆ドロップ、またはクリックして選択</p>
-            <p className="text-xs text-white/30">JPG / PNG / WebP {photos.length}/15枚</p>
+            <p className="text-xs text-white/30">JPG / PNG / WebP {photos.length}/15枚（自動圧縮）</p>
           </>
         )}
       </div>
