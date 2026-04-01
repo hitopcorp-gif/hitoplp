@@ -18,7 +18,7 @@ Rules:
 - Center the car vertically in the final image
 - Maintain sharp edges, reflections, and fine details of the original image`
 
-const REEL_PROMPT = 'Cinematic luxury car showcase. First half: slow camera orbit around the car showing the full body and studio environment. Second half: camera smoothly zooms in toward the front, focusing on headlights, grille and badge details. Keep the wall-mounted logo and shield sign visible throughout. Premium studio lighting with sharp reflections on bodywork. High detail, photorealistic, 4K quality. No text, no people, no watermarks.'
+const REEL_PROMPT = 'Cinematic luxury car showcase. The car is stationary with wheels completely still. No wheel rotation. First half: slow camera orbit around the car showing the full body and studio environment. Second half: camera smoothly zooms in toward the front, focusing on headlights, grille and badge details. Keep the wall-mounted logo and shield sign visible throughout. Premium studio lighting with sharp reflections on bodywork. High detail, photorealistic, 4K quality. No text, no people, no watermarks.'
 const REEL_NEGATIVE = 'blur, distort, low quality, text, watermark, people, cartoon, anime, drawing'
 
 /**
