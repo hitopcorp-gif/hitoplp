@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { uploadImageToR2 } from '@/lib/upload'
+import { compressForLp } from '@/lib/compress'
 import { Button } from '@/components/ui/button'
 import type { CarPhoto, PhotoTag, Situation } from '@/types'
 import { PHOTO_ADVICE } from '@/types'
@@ -48,12 +49,15 @@ export function Step3Photos({ situation, onNext, defaultPhotos = [] }: Props) {
       for (let i = 0; i < acceptedFiles.length; i++) {
         const file = acceptedFiles[i]
         const id = `${Date.now()}-${i}`
-        const { key, url } = await uploadImageToR2(file)
+        const tag = guessTag(photos.length + i)
+        // LP品質を保ちつつ圧縮（ヒーロー写真は高品質設定）
+        const compressed = await compressForLp(file, tag === 'hero' ? 'hero' : 'other')
+        const { key, url } = await uploadImageToR2(compressed)
         newPhotos.push({
           id,
           url,
           storageRef: key,
-          tag: guessTag(photos.length + i),
+          tag,
           order: photos.length + i,
         })
       }
