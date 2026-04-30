@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { doc, getDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
-import type { Vehicle, GeneratedContent } from '@/types'
+import type { Vehicle, GeneratedContent, CarBasicInfo, CarPhoto } from '@/types'
 import { Button } from '@/components/ui/button'
 import { LpPreview } from '@/components/LpPreview'
 import { generateContent } from '@/lib/ai'
@@ -11,8 +11,11 @@ import { generateNarration } from '@/lib/tts'
 import { generateVerticalImage, generateReelVideo } from '@/lib/reel'
 import { generateFeedImage, generateOgpImage } from '@/lib/sns-image'
 import { mergeVideoAudio } from '@/lib/merge-video'
+import { AccordionSection, EditField, EditTextarea } from '@/components/vehicle-detail/edit-primitives'
+import { EditBasicInfoSection } from '@/components/vehicle-detail/EditBasicInfoSection'
+import { EditPhotosSection } from '@/components/vehicle-detail/EditPhotosSection'
 import {
-  ChevronLeft, Eye, Globe, RotateCcw, BadgeCheck, Edit, Sparkles, Check, Trash2, ChevronDown, Volume2,
+  ChevronLeft, Eye, Globe, RotateCcw, BadgeCheck, Edit, Sparkles, Check, Trash2, Volume2,
   Video, Image, Copy, Download, Play, RefreshCw, Instagram, Film
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -42,6 +45,9 @@ export function VehicleDetailPage() {
   const [saveOk, setSaveOk] = useState(false)
   const [editedContent, setEditedContent] = useState<GeneratedContent | null>(null)
   const [detailPhotoUrls, setDetailPhotoUrls] = useState<[string, string, string, string] | undefined>(undefined)
+  // 編集タブで basicInfo と photos も編集可能にするための state
+  const [editedBasicInfo, setEditedBasicInfo] = useState<CarBasicInfo | null>(null)
+  const [editedPhotos, setEditedPhotos] = useState<CarPhoto[] | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -51,6 +57,8 @@ export function VehicleDetailPage() {
         setVehicle(v)
         if (v.generatedContent) setEditedContent(v.generatedContent)
         if (v.detailPhotoUrls) setDetailPhotoUrls(v.detailPhotoUrls)
+        setEditedBasicInfo(v.basicInfo)
+        setEditedPhotos(v.photos)
       }
       setLoading(false)
     })
@@ -64,6 +72,17 @@ export function VehicleDetailPage() {
     const nextStatus = vehicle.status === 'published' ? 'draft' : 'published'
 
     try {
+      // 0. 公開前に未保存編集（basicInfo / photos / content / detailPhotoUrls）を Firestore に保存
+      //    これにより以降のロジックは最新の vehicle / basicInfo / photos を使える
+      if (
+        editedBasicInfo ||
+        editedPhotos ||
+        editedContent ||
+        detailPhotoUrls
+      ) {
+        await handleSaveEdit()
+      }
+
       // 1. Firestoreを先に更新（権威的な状態）
       await updateDoc(doc(db, 'vehicles', id), {
         status: nextStatus,
@@ -77,6 +96,8 @@ export function VehicleDetailPage() {
       const API_BASE = import.meta.env.VITE_API_BASE_URL
       if (nextStatus === 'published' && vehicle.generatedContent) {
         const content = editedContent ?? vehicle.generatedContent
+        const basicInfo = editedBasicInfo ?? vehicle.basicInfo
+        const photos = editedPhotos ?? vehicle.photos
 
         // TTS音声生成（既にaudioUrlがあればスキップ）
         let audioUrl = vehicle.audioUrl ?? ''
@@ -89,11 +110,16 @@ export function VehicleDetailPage() {
           }
         }
 
-        const vehicleWithAudio = { ...vehicle, detailPhotoUrls: detailPhotoUrls ?? vehicle.detailPhotoUrls, audioUrl }
-        console.log('[publish] audioUrl:', audioUrl, 'vehicle.audioUrl:', vehicle.audioUrl)
+        const vehicleForHtml: Vehicle = {
+          ...vehicle,
+          basicInfo,
+          photos,
+          detailPhotoUrls: detailPhotoUrls ?? vehicle.detailPhotoUrls,
+          audioUrl,
+        }
 
         setPublishPhase('LP生成中...')
-        const html = generateLpHtml(vehicleWithAudio, content, false)
+        const html = generateLpHtml(vehicleForHtml, content, false)
         setPublishPhase('アップロード中...')
         const uploadRes = await fetch(`${API_BASE}/api/upload/lp/${vehicle.slug}.html`, {
           method: 'PUT',
@@ -111,11 +137,11 @@ export function VehicleDetailPage() {
         setPublishPhase('インデックス更新中...')
         await updateLpIndex(API_BASE, vehicle.slug, {
           slug: vehicle.slug,
-          name: vehicle.basicInfo.name,
+          name: basicInfo.name,
           nameJa: content.nameJa ?? '',
-          year: vehicle.basicInfo.year,
-          price: vehicle.basicInfo.isAsk ? 'ASK' : vehicle.basicInfo.price,
-          heroUrl: vehicle.photos.find(p => p.tag === 'hero')?.url ?? vehicle.photos[0]?.url ?? '',
+          year: basicInfo.year,
+          price: basicInfo.isAsk ? 'ASK' : basicInfo.price,
+          heroUrl: photos.find(p => p.tag === 'hero')?.url ?? photos[0]?.url ?? '',
           status: 'published',
         })
       } else if (nextStatus === 'draft') {
@@ -175,6 +201,11 @@ export function VehicleDetailPage() {
     setPublishing(true)
     setPublishPhase('売約済みに変更中...')
     try {
+      // 公開系処理の前に未保存編集を保存（最新の basicInfo / photos が SOLD LP に焼き込まれるように）
+      if (editedBasicInfo || editedPhotos || editedContent || detailPhotoUrls) {
+        await handleSaveEdit()
+      }
+
       await updateDoc(doc(db, 'vehicles', id), {
         status: 'sold',
         soldAt: serverTimestamp(),
@@ -184,10 +215,18 @@ export function VehicleDetailPage() {
 
       const API_BASE = import.meta.env.VITE_API_BASE_URL
       const content = editedContent ?? vehicle.generatedContent
+      const basicInfo = editedBasicInfo ?? vehicle.basicInfo
+      const photos = editedPhotos ?? vehicle.photos
       if (content) {
         // Re-generate LP HTML with SOLD status
         setPublishPhase('SOLD LP生成中...')
-        const soldVehicle = { ...vehicle, status: 'sold' as const, detailPhotoUrls: detailPhotoUrls ?? vehicle.detailPhotoUrls }
+        const soldVehicle: Vehicle = {
+          ...vehicle,
+          status: 'sold',
+          basicInfo,
+          photos,
+          detailPhotoUrls: detailPhotoUrls ?? vehicle.detailPhotoUrls,
+        }
         const html = generateLpHtml(soldVehicle, content, false)
         await fetch(`${API_BASE}/api/upload/lp/${vehicle.slug}.html`, {
           method: 'PUT',
@@ -198,13 +237,13 @@ export function VehicleDetailPage() {
 
       // Update index with sold status
       setPublishPhase('インデックス更新中...')
-      const heroUrl = vehicle.photos.find(p => p.tag === 'hero')?.url ?? vehicle.photos[0]?.url ?? ''
+      const heroUrl = photos.find(p => p.tag === 'hero')?.url ?? photos[0]?.url ?? ''
       await updateLpIndex(API_BASE, vehicle.slug, {
         slug: vehicle.slug,
-        name: vehicle.basicInfo.name,
+        name: basicInfo.name,
         nameJa: editedContent?.nameJa ?? vehicle.generatedContent?.nameJa ?? '',
-        year: vehicle.basicInfo.year,
-        price: vehicle.basicInfo.isAsk ? 'ASK' : vehicle.basicInfo.price,
+        year: basicInfo.year,
+        price: basicInfo.isAsk ? 'ASK' : basicInfo.price,
         heroUrl,
         status: 'sold',
       })
@@ -246,17 +285,44 @@ export function VehicleDetailPage() {
   }
 
   async function handleSaveEdit() {
-    if (!id || !editedContent) return
+    if (!id) return
     setSaving(true)
     setSaveError('')
     setSaveOk(false)
     try {
-      await updateDoc(doc(db, 'vehicles', id), {
-        generatedContent: editedContent,
-        ...(detailPhotoUrls ? { detailPhotoUrls } : {}),
+      // updateDoc payload: 値があるフィールドだけ送る。
+      // Firestore SDK の型 (UpdateData) は深いネストになるため、型を緩めて構築し any 経由で渡す。
+      const updates: { [key: string]: unknown } = {
         updatedAt: serverTimestamp(),
+      }
+      if (editedContent) updates.generatedContent = editedContent
+      if (detailPhotoUrls) updates.detailPhotoUrls = detailPhotoUrls
+      if (editedBasicInfo) updates.basicInfo = editedBasicInfo
+      if (editedPhotos) {
+        // File オブジェクトは Firestore に保存できないので除去
+        updates.photos = editedPhotos.map((p) => ({
+          id: p.id,
+          url: p.url,
+          storageRef: p.storageRef ?? '',
+          tag: p.tag,
+          order: p.order,
+          ...(p.urlVariants ? { urlVariants: p.urlVariants } : {}),
+        }))
+      }
+
+      await updateDoc(doc(db, 'vehicles', id), updates as any)
+
+      // ローカル vehicle state も同期（公開時に最新値が使われるように）
+      setVehicle((prev) => {
+        if (!prev) return prev
+        const next: Vehicle = { ...prev }
+        if (editedContent) next.generatedContent = editedContent
+        if (detailPhotoUrls) next.detailPhotoUrls = detailPhotoUrls
+        if (editedBasicInfo) next.basicInfo = editedBasicInfo
+        if (editedPhotos) next.photos = editedPhotos
+        return next
       })
-      setVehicle((prev) => prev ? { ...prev, generatedContent: editedContent, detailPhotoUrls } : prev)
+
       setSaveOk(true)
       setTimeout(() => setSaveOk(false), 2500)
     } catch (e) {
@@ -395,7 +461,12 @@ export function VehicleDetailPage() {
             </div>
             {vehicle.generatedContent ? (
               <LpPreview
-                vehicle={{ ...vehicle, detailPhotoUrls: detailPhotoUrls ?? vehicle.detailPhotoUrls }}
+                vehicle={{
+                  ...vehicle,
+                  basicInfo: editedBasicInfo ?? vehicle.basicInfo,
+                  photos: editedPhotos ?? vehicle.photos,
+                  detailPhotoUrls: detailPhotoUrls ?? vehicle.detailPhotoUrls,
+                }}
                 content={editedContent ?? vehicle.generatedContent}
               />
             ) : (
@@ -410,7 +481,7 @@ export function VehicleDetailPage() {
           </div>
         )}
 
-        {tab === 'edit' && editedContent && (
+        {tab === 'edit' && editedContent && editedBasicInfo && editedPhotos && (
           <EditTab
             content={editedContent}
             onChange={setEditedContent}
@@ -418,7 +489,10 @@ export function VehicleDetailPage() {
             saving={saving}
             saveError={saveError}
             saveOk={saveOk}
-            photos={vehicle.photos}
+            basicInfo={editedBasicInfo}
+            onBasicInfoChange={setEditedBasicInfo}
+            photos={editedPhotos}
+            onPhotosChange={setEditedPhotos}
             detailPhotoUrls={detailPhotoUrls}
             onDetailPhotoUrlsChange={setDetailPhotoUrls}
           />
@@ -510,23 +584,6 @@ export function VehicleDetailPage() {
   )
 }
 
-function AccordionSection({ title, defaultOpen = false, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
-  const [open, setOpen] = useState(defaultOpen)
-  return (
-    <div className="border border-white/10">
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-white/3 transition-colors"
-      >
-        <span className="text-xs tracking-widest text-white/50 uppercase">{title}</span>
-        <ChevronDown className={`w-4 h-4 text-white/30 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
-      </button>
-      {open && <div className="px-5 pb-5 space-y-5">{children}</div>}
-    </div>
-  )
-}
-
 function EditTab({
   content,
   onChange,
@@ -534,7 +591,10 @@ function EditTab({
   saving,
   saveError,
   saveOk,
+  basicInfo,
+  onBasicInfoChange,
   photos,
+  onPhotosChange,
   detailPhotoUrls,
   onDetailPhotoUrlsChange,
 }: {
@@ -544,7 +604,10 @@ function EditTab({
   saving: boolean
   saveError: string
   saveOk: boolean
-  photos: Vehicle['photos']
+  basicInfo: CarBasicInfo
+  onBasicInfoChange: (b: CarBasicInfo) => void
+  photos: CarPhoto[]
+  onPhotosChange: (p: CarPhoto[]) => void
   detailPhotoUrls: [string, string, string, string] | undefined
   onDetailPhotoUrlsChange: (urls: [string, string, string, string]) => void
 }) {
@@ -553,6 +616,18 @@ function EditTab({
 
   return (
     <div className="max-w-2xl space-y-4">
+      {/* 基本情報（車両データ） */}
+      <EditBasicInfoSection
+        value={basicInfo}
+        onChange={onBasicInfoChange}
+      />
+
+      {/* 写真管理 */}
+      <EditPhotosSection
+        value={photos}
+        onChange={onPhotosChange}
+      />
+
       {/* Hero section */}
       <AccordionSection title="ヒーロー / メインコピー" defaultOpen>
         <EditField
@@ -717,34 +792,6 @@ function EditTab({
       <Button onClick={onSave} disabled={saving} className="w-full">
         {saving ? '保存中...' : '変更を保存'}
       </Button>
-    </div>
-  )
-}
-
-function EditField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
-  return (
-    <div className="space-y-2">
-      <label className="text-xs tracking-widest text-white/40 uppercase">{label}</label>
-      <input
-        type="text"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full border-b border-white/20 bg-transparent py-2 text-sm text-white focus:border-brand-gold focus:outline-none"
-      />
-    </div>
-  )
-}
-
-function EditTextarea({ label, value, onChange, rows = 6 }: { label: string; value: string; onChange: (v: string) => void; rows?: number }) {
-  return (
-    <div className="space-y-2">
-      <label className="text-xs tracking-widest text-white/40 uppercase">{label}</label>
-      <textarea
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        rows={rows}
-        className="w-full border border-white/20 bg-transparent p-3 text-sm text-white focus:border-brand-gold focus:outline-none resize-none"
-      />
     </div>
   )
 }
