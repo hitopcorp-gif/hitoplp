@@ -3,8 +3,9 @@
   "configurations": [
     {
       "name": "web",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--workspace=apps/web"],
+      "runtimeExecutable": "/Users/pancho/nodejs/bin/node",
+      "runtimeArgs": ["/Users/pancho/nodejs/bin/npm", "run", "dev", "--workspace=apps/web"],
+      "env": { "PATH": "/Users/pancho/nodejs/bin:/usr/bin:/bin" },
       "port": 5173
     }
   ]

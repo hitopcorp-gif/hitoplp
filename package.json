@@ -1,10 +1,15 @@
 {
   "name": "hitoplp",
   "private": true,
-  "workspaces": ["apps/*"],
+  "workspaces": [
+    "apps/*"
+  ],
   "scripts": {
     "dev": "npm run dev --workspace=apps/web",
     "build": "npm run build --workspace=apps/web && npm run build --workspace=apps/worker",
     "test": "npm run test --workspace=apps/web"
+  },
+  "devDependencies": {
+    "puppeteer": "^24.40.0"
   }
 }
