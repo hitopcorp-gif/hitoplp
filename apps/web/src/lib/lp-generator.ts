@@ -12,6 +12,20 @@ function photosByTag(photos: CarPhoto[], tag: CarPhoto['tag']): CarPhoto[] {
   return photos.filter((p) => p.tag === tag).sort((a, b) => a.order - b.order)
 }
 
+/**
+ * <img srcset="..." sizes="..."> 属性文字列を生成。
+ * `urlVariants` を持たない旧データの場合は空文字（src のみで fallback）。
+ * 戻り値は先頭に半角スペース付きで、そのまま `<img>` に挿入できる形。
+ */
+function srcsetAttr(photo: CarPhoto | undefined, sizes: string): string {
+  if (!photo?.urlVariants) return ''
+  const set = Object.entries(photo.urlVariants)
+    .map(([w, url]) => `${url} ${w}w`)
+    .join(', ')
+  if (!set) return ''
+  return ` srcset="${set}" sizes="${sizes}"`
+}
+
 type DetailItem = { caption: string; description: string } | string
 
 function normalizeDetail(d: DetailItem): { caption: string; description: string } {
@@ -74,25 +88,39 @@ export function generateLpHtml(vehicle: Vehicle, content: GeneratedContent, prev
   const interiorPhotos = photosByTag(photos, 'interior')
   const detailPhotos = photosByTag(photos, 'detail')
 
-  const heroUrl = heroPhotos[0]?.url ?? exteriorPhotos[0]?.url ?? ''
-  const sec1Photo = exteriorPhotos[0]?.url ?? heroPhotos[1]?.url ?? ''
-  const fullBreed1 = exteriorPhotos[1]?.url ?? heroPhotos[0]?.url ?? ''
-  const sec2Photo = interiorPhotos[0]?.url ?? exteriorPhotos[2]?.url ?? ''
-  const fullBreed2 = exteriorPhotos[2]?.url ?? interiorPhotos[1]?.url ?? ''
-  const fullBreed3 = interiorPhotos[1]?.url ?? ''
+  // CarPhoto オブジェクトのまま参照（urlVariants を引けるように）
+  const heroPhoto = heroPhotos[0] ?? exteriorPhotos[0]
+  const sec1PhotoObj = exteriorPhotos[0] ?? heroPhotos[1]
+  const fullBreed1Obj = exteriorPhotos[1] ?? heroPhotos[0]
+  const sec2PhotoObj = interiorPhotos[0] ?? exteriorPhotos[2]
+  const fullBreed2Obj = exteriorPhotos[2] ?? interiorPhotos[1]
+  const fullBreed3Obj = interiorPhotos[1]
+
+  // 既存の文字列 URL も派生（テンプレ可読性のため）
+  const heroUrl = heroPhoto?.url ?? ''
+  const sec1Photo = sec1PhotoObj?.url ?? ''
+  const fullBreed1 = fullBreed1Obj?.url ?? ''
+  const sec2Photo = sec2PhotoObj?.url ?? ''
+  const fullBreed2 = fullBreed2Obj?.url ?? ''
+  const fullBreed3 = fullBreed3Obj?.url ?? ''
 
   // Mobile photo strip: all exterior + interior photos (full car, uncropped)
-  const mobileStripPhotos = [
+  const mobileStripObjs: CarPhoto[] = [
     ...heroPhotos.slice(1),
     ...exteriorPhotos,
     ...interiorPhotos,
-  ].filter(p => p.url).map(p => p.url)
+  ].filter(p => p.url)
+
+  // detailGrid は URL 文字列の配列だが、対応する CarPhoto を photos[] から URL マッチで引く
   const detailGrid: string[] = vehicle.detailPhotoUrls ?? [
     detailPhotos[0]?.url ?? interiorPhotos[0]?.url ?? '',
     detailPhotos[1]?.url ?? interiorPhotos[1]?.url ?? '',
     detailPhotos[2]?.url ?? exteriorPhotos[0]?.url ?? '',
     detailPhotos[3]?.url ?? exteriorPhotos[1]?.url ?? '',
   ]
+  const detailGridObjs: (CarPhoto | undefined)[] = detailGrid.map((url) =>
+    photos.find((p) => p.url === url),
+  )
 
   const priceDisplay = basicInfo.isAsk ? 'ASK' : basicInfo.price
   const titleLines = splitVehicleName(basicInfo.name)
@@ -155,6 +183,8 @@ ${JSON.stringify({
   "url": `https://hitoplp-api.hitopcorp.workers.dev/${vehicle.slug}`
 })}
 </script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-95LD1B13QH"></script>
+<script>/* timezone-safe: GA gtag.js standard init, runs in user browser as monotonic seed */ window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-95LD1B13QH');</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://api.fontshare.com/v2/css?f[]=satoshi@900,800,700,400,300&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,300;1,300;1,400&family=Noto+Sans+JP:wght@300;400&display=swap" rel="stylesheet">
@@ -220,12 +250,13 @@ a { color: inherit; text-decoration: none; }
 /* ── HERO ── */
 .hero { position: relative; height: 100vh; height: 100dvh; min-height: 640px; overflow: hidden; display: flex; align-items: flex-end; }
 .hero-bg { position: absolute; inset: 0; will-change: transform; }
-.hero-bg img { width: 100%; height: 125%; object-fit: cover; object-position: center 72%; filter: brightness(0.4); }
+.hero-bg img { width: 100%; height: 125%; object-fit: cover; object-position: center 72%; }
 .hero-grain {
   position: absolute; inset: 0; pointer-events: none; opacity: 0.18;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
 }
-.hero-grad { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.82) 6%, rgba(0,0,0,0.3) 18%, rgba(0,0,0,0.05) 30%, transparent 40%, rgba(0,0,0,0.18) 55%, rgba(0,0,0,0.92) 100%); }
+/* 画像品質を保つため filter:brightness で画像自体を暗くせず、CSSグラデーションで暗化する */
+.hero-grad { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.92) 6%, rgba(0,0,0,0.66) 18%, rgba(0,0,0,0.5) 30%, rgba(0,0,0,0.45) 50%, rgba(0,0,0,0.55) 70%, rgba(0,0,0,0.95) 100%); }
 .hero-content { position: relative; z-index: 2; width: 100%; padding: clamp(48px, 8vh, 80px) clamp(24px, 5vw, 72px) clamp(80px, 14vh, 148px); }
 .hero-label {
   font-family: 'Noto Sans JP', sans-serif; font-size: 8px;
@@ -414,14 +445,14 @@ footer { border-top: 1px solid rgba(255,255,255,0.05); padding: 56px 0; }
   .hero-bg img {
     height: 100% !important;
     object-position: center 35% !important;
-    filter: brightness(0.6) !important;
+    /* デスクトップと同様、画質保持のため filter による暗化はせず CSS グラデーションで担保 */
   }
   .hero-grain { display: none; }
   .hero-grad {
     background: linear-gradient(to bottom,
-      rgba(0,0,0,0.05) 0%,
-      transparent 20%,
-      transparent 42%,
+      rgba(0,0,0,0.35) 0%,
+      rgba(0,0,0,0.25) 20%,
+      rgba(0,0,0,0.3) 42%,
       rgba(0,0,0,0.85) 52%,
       var(--bg) 56%,
       var(--bg) 100%
@@ -460,7 +491,7 @@ footer { border-top: 1px solid rgba(255,255,255,0.05); padding: 56px 0; }
 <!-- HERO -->
 <section class="hero" id="hero">
   <div class="hero-bg" id="hbg">
-    ${heroUrl ? `<img src="${heroUrl}" alt="${basicInfo.name}" loading="eager">` : '<div style="width:100%;height:100%;background:#111;"></div>'}
+    ${heroUrl ? `<img src="${heroUrl}"${srcsetAttr(heroPhoto, '100vw')} alt="${basicInfo.name}" loading="eager">` : '<div style="width:100%;height:100%;background:#111;"></div>'}
   </div>
   <div class="hero-grain"></div>
   <div class="hero-grad"></div>
@@ -485,12 +516,12 @@ ${vehicle.audioUrl ? `  <button id="hero-audio-cta" class="hero-audio-cta">
   </button>` : ''}
 </section>
 
-${mobileStripPhotos.length > 0 ? `
+${mobileStripObjs.length > 0 ? `
 <!-- MOBILE PHOTO STRIP -->
 <div class="mob-strip" style="padding-top:32px;padding-bottom:32px;">
-  ${mobileStripPhotos.map((url, i) => `<div class="mob-strip-item">
-    <img src="${url}" alt="">
-    <span class="mob-strip-count">${i + 1} / ${mobileStripPhotos.length}</span>
+  ${mobileStripObjs.map((p, i) => `<div class="mob-strip-item">
+    <img src="${p.url}"${srcsetAttr(p, '72vw')} alt="" loading="lazy">
+    <span class="mob-strip-count">${i + 1} / ${mobileStripObjs.length}</span>
   </div>`).join('')}
 </div>` : ''}
 
@@ -500,7 +531,7 @@ ${mobileStripPhotos.length > 0 ? `
     <span class="s-ghost en ${R}">01</span>
     <div class="two">
       <div class="ph ${R}">
-        ${sec1Photo ? `<img src="${sec1Photo}" alt="">` : ''}
+        ${sec1Photo ? `<img src="${sec1Photo}"${srcsetAttr(sec1PhotoObj, '100vw')} alt="" loading="lazy">` : ''}
       </div>
       <div class="tx">
         <p class="s-eyebrow sans ${R}">01 / ${content.section1.title}</p>
@@ -513,7 +544,7 @@ ${mobileStripPhotos.length > 0 ? `
   </div>
 </section>
 
-${fullBreed1 ? `<div class="fb"><img src="${fullBreed1}" alt="" class="fb-par"><div class="fb-over"></div></div>` : ''}
+${fullBreed1 ? `<div class="fb"><img src="${fullBreed1}"${srcsetAttr(fullBreed1Obj, '100vw')} alt="" class="fb-par" loading="lazy"><div class="fb-over"></div></div>` : ''}
 
 <div class="pq">
   <span class="pq-mark en">"</span>
@@ -534,13 +565,13 @@ ${fullBreed1 ? `<div class="fb"><img src="${fullBreed1}" alt="" class="fb-par"><
         </div>
       </div>
       <div class="ph ${R}">
-        ${sec2Photo ? `<img src="${sec2Photo}" alt="">` : ''}
+        ${sec2Photo ? `<img src="${sec2Photo}"${srcsetAttr(sec2PhotoObj, '100vw')} alt="" loading="lazy">` : ''}
       </div>
     </div>
   </div>
 </section>
 
-${fullBreed2 ? `<div class="fb"><img src="${fullBreed2}" alt="" class="fb-par"><div class="fb-over"></div></div>` : ''}
+${fullBreed2 ? `<div class="fb"><img src="${fullBreed2}"${srcsetAttr(fullBreed2Obj, '100vw')} alt="" class="fb-par" loading="lazy"><div class="fb-over"></div></div>` : ''}
 
 <!-- SECTION 03 DETAILS -->
 <section class="sec">
@@ -553,7 +584,7 @@ ${fullBreed2 ? `<div class="fb"><img src="${fullBreed2}" alt="" class="fb-par"><
       ${(content.section3?.details ?? []).map((d, i) => {
         const det = normalizeDetail(d as DetailItem)
         return `<div class="di ${R} d${(i % 2) + 1}">
-          <div class="di-img">${detailGrid[i] ? `<img src="${detailGrid[i]}" alt="">` : '<div style="width:100%;height:300px;background:#111;"></div>'}</div>
+          <div class="di-img">${detailGrid[i] ? `<img src="${detailGrid[i]}"${srcsetAttr(detailGridObjs[i], '(max-width: 900px) 50vw, 25vw')} alt="" loading="lazy">` : '<div style="width:100%;height:300px;background:#111;"></div>'}</div>
           <p class="di-n en">0${i + 1}</p>
           <p class="di-cap">${det.caption}</p>
           <p class="di-desc sans">${det.description}</p>
@@ -563,7 +594,7 @@ ${fullBreed2 ? `<div class="fb"><img src="${fullBreed2}" alt="" class="fb-par"><
   </div>
 </section>
 
-${fullBreed3 ? `<div class="fb"><img src="${fullBreed3}" alt="" class="fb-par"><div class="fb-over"></div></div>` : ''}
+${fullBreed3 ? `<div class="fb"><img src="${fullBreed3}"${srcsetAttr(fullBreed3Obj, '100vw')} alt="" class="fb-par" loading="lazy"><div class="fb-over"></div></div>` : ''}
 
 ${content.pullQuote2 ? `<div class="pq">
   <span class="pq-mark en">"</span>

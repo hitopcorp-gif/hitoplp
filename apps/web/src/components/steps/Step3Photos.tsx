@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { uploadImageToR2 } from '@/lib/upload'
-import { compressForLp } from '@/lib/compress'
+import { uploadVariantsToR2 } from '@/lib/upload'
+import { compressForLpVariants } from '@/lib/compress'
 import { Button } from '@/components/ui/button'
 import type { CarPhoto, PhotoTag, Situation } from '@/types'
 import { PHOTO_ADVICE } from '@/types'
@@ -52,18 +52,19 @@ export function Step3Photos({ situation, onNext, defaultPhotos = [] }: Props) {
         const file = acceptedFiles[i]
         const id = `${Date.now()}-${i}`
         const tag = guessTag(photos.length + i)
-        // 圧縮フェーズ
+        // 圧縮フェーズ（多サイズバリアント生成）
         setUploadProgress({ current: i + 1, total: acceptedFiles.length, phase: 'compress' })
-        const compressed = await compressForLp(file, tag === 'hero' ? 'hero' : 'other')
-        // アップロードフェーズ
+        const variants = await compressForLpVariants(file, tag === 'hero' ? 'hero' : 'other')
+        // アップロードフェーズ（並列で全 variant を R2 へ）
         setUploadProgress({ current: i + 1, total: acceptedFiles.length, phase: 'upload' })
-        const { key, url } = await uploadImageToR2(compressed)
+        const { key, url, urlVariants } = await uploadVariantsToR2(variants)
         newPhotos.push({
           id,
           url,
           storageRef: key,
           tag,
           order: photos.length + i,
+          urlVariants,
         })
       }
       setPhotos((prev) => [...prev, ...newPhotos])

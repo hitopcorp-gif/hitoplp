@@ -19,6 +19,13 @@ export interface CarPhoto {
   storageRef?: string
   tag: PhotoTag
   order: number
+  /**
+   * レスポンシブ画像のバリアント URL マップ。
+   * キー = 幅 (px) を文字列化したもの ("2560" | "1280" | "640" など)、値 = R2 上のフル URL。
+   * 旧データ（バリアント未生成）では undefined。
+   * undefined の場合は LP は単一 `url` を src として使用（後方互換）。
+   */
+  urlVariants?: Record<string, string>
 }
 
 export interface CarBasicInfo {

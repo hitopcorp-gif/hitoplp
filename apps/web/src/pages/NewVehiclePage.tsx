@@ -45,7 +45,14 @@ export function NewVehiclePage() {
       basicInfo,
       situation,
       colorTemplate,
-      photos: photos.map((p) => ({ url: p.url, tag: p.tag, order: p.order, storageRef: p.storageRef ?? '' })),
+      photos: photos.map((p) => ({
+        url: p.url,
+        tag: p.tag,
+        order: p.order,
+        storageRef: p.storageRef ?? '',
+        // urlVariants は新規アップロード分のみ存在。Firestore は undefined をはじくので存在時のみ含める
+        ...(p.urlVariants ? { urlVariants: p.urlVariants } : {}),
+      })),
       status: 'draft',
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
