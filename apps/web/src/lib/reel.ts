@@ -18,8 +18,8 @@ Rules:
 - Center the car vertically in the final image
 - Maintain sharp edges, reflections, and fine details of the original image`
 
-const REEL_PROMPT = 'Cinematic luxury car showcase. The car is stationary with wheels completely still. No wheel rotation. First half: slow camera orbit around the car showing the full body and studio environment. Second half: camera smoothly zooms in toward the front, focusing on headlights, grille and badge details. Keep the wall-mounted logo and shield sign visible throughout. Premium studio lighting with sharp reflections on bodywork. High detail, photorealistic, 4K quality. No text, no people, no watermarks.'
-const REEL_NEGATIVE = 'blur, distort, low quality, text, watermark, people, cartoon, anime, drawing'
+const REEL_PROMPT = 'Cinematic luxury car showcase. The car is parked in a showroom, engine off. First half: slow camera orbit around the car showing the full body and studio environment. Second half: camera smoothly zooms in toward the front, focusing on headlights, grille and badge details. Keep the wall-mounted logo and shield sign visible throughout. Premium studio lighting with sharp reflections on bodywork. High detail, photorealistic, 4K quality. No text, no people, no watermarks.'
+const REEL_NEGATIVE = 'blur, distort, low quality, text, watermark, people, cartoon, anime, drawing, spinning wheels, rotating wheels, driving, moving car'
 
 /**
  * Step 1: 横長ヒーロー写真 → 縦長9:16画像に背景拡張
@@ -77,13 +77,12 @@ export async function generateReelVideo(
   onProgress?.('リール動画を生成中（5〜10分）...')
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result = await fal.subscribe('fal-ai/kling-video/v3/pro/image-to-video' as any, {
+  const result = await fal.subscribe('fal-ai/kling-video/v2.5-turbo/pro/image-to-video' as any, {
     input: {
       prompt: REEL_PROMPT,
       image_url: verticalImageUrl,
-      duration: '15',
+      duration: '10',
       negative_prompt: REEL_NEGATIVE,
-      generate_audio: false,
       aspect_ratio: '9:16',
     },
   })

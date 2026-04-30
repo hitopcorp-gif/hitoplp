@@ -33,9 +33,12 @@ export async function mergeVideoAudio(
   const ff = await getFFmpeg(onProgress)
 
   onProgress?.('ファイルを取得中...')
+  // R2/CDN の HTTP キャッシュが古い音声・動画を返すのを回避するため cache-bust を付与
+  // （再生成で URL は同じまま中身だけ差し替わるため、bare URL だとキャッシュヒットする）
+  const bust = `?t=${Date.now()}`
   const [videoData, audioData] = await Promise.all([
-    fetchFile(videoUrl),
-    fetchFile(audioUrl),
+    fetchFile(`${videoUrl}${bust}`),
+    fetchFile(`${audioUrl}${bust}`),
   ])
 
   await ff.writeFile('input.mp4', videoData)
