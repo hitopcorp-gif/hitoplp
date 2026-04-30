@@ -337,7 +337,7 @@ const SITUATION_LABELS: Record<Situation, string> = {
 }
 
 // ── basicInfo + situation + colorTemplate から /api/generate に渡す prompt を組み立てる
-//    （apps/web/src/lib/ai.ts の generateContent と同等のテンプレートを Worker 内で再現）──
+//    （apps/web/src/lib/ai.ts の generateContent と完全一致 = ナレーション 1500-1800字 + ElevenLabs v3 タグ付き）──
 function buildLpUserPrompt(
   basicInfo: CarBasicInfo,
   situation: Situation,
@@ -369,37 +369,37 @@ ${basicInfo.tagline ? `\n一行コピー指定: ${basicInfo.tagline}` : ''}
   "subtitle": "（15〜25文字。車の本質を詩的に）",
   "englishCopy": "（2〜4 words）",
   "section1": {
-    "title": "（4〜10文字。視覚的・存在感）",
-    "subtitle": "（5〜10文字。英語可）",
-    "story": "（150〜200文字。シチュエーション + LEON文体 + 豆知識）"
+    "title": "（英語1word）",
+    "subtitle": "（日本語10〜20文字）",
+    "story": "（300〜400文字。このモデル固有の設計哲学・エンジニアリングの豆知識・歴史的背景を入れつつ、HI-TOPカスタムと五感描写で結びつける）"
   },
   "section2": {
-    "title": "（4〜10文字。素材感・職人技・所有感）",
-    "subtitle": "（5〜10文字。英語可）",
-    "story": "（150〜200文字。素材・歴史・LEON文体 + 豆知識）"
+    "title": "（英語1word）",
+    "subtitle": "（日本語10〜20文字）",
+    "story": "（300〜400文字。走り・機能・スペックの話をモデル固有の特性と絡めて書く）"
   },
   "section3": {
-    "title": "（4〜10文字。ディテール）",
-    "subtitle": "（5〜10文字。英語可）",
+    "title": "（英語1word）",
+    "subtitle": "（日本語10〜20文字）",
     "details": [
-      { "caption": "（10文字以内）", "description": "（25〜40文字。豆知識交じり）" },
-      { "caption": "（10文字以内）", "description": "（25〜40文字。豆知識交じり）" },
-      { "caption": "（10文字以内）", "description": "（25〜40文字。豆知識交じり）" },
-      { "caption": "（10文字以内）", "description": "（25〜40文字。豆知識交じり）" }
+      {"caption": "（10〜20文字）", "description": "（70〜90文字。カスタムの技術的な背景や面白い事実を含める）"},
+      {"caption": "（10〜20文字）", "description": "（70〜90文字）"},
+      {"caption": "（10〜20文字）", "description": "（70〜90文字）"},
+      {"caption": "（10〜20文字）", "description": "（70〜90文字）"}
     ]
   },
-  "pullQuote1": "（30〜50文字。LEON調キャッチ）",
-  "pullQuote2": "（30〜50文字。閉じ。任意）",
-  "igCaption": "（120文字以内。Instagram用）",
-  "igHashtags": "（5〜8タグ、半角スペース区切り。#から始まる）",
-  "tweetText": "（120文字以内。Twitter用）",
-  "narrationText": "（150〜180文字。音声ナレーション台本。一文を短く、間を意識）",
-  "reelNarration": "（80〜120文字。15秒リール用ナレーション。冒頭フック・中盤特徴・末尾ブランド着地）",
+  "pullQuote1": "（20〜40文字。このモデルの本質を突いた、思わず膝を打つ一文）",
+  "pullQuote2": "（20〜40文字、任意）",
+  "igCaption": "（Instagram投稿文。300文字以内。改行OK）",
+  "igHashtags": "（ハッシュタグ5個以内。車種名、ブランド名、#HiTopCorp を優先。汎用タグ（#car #luxury）は使わない）",
+  "tweetText": "（140文字以内のツイート文）",
+  "reelNarration": "（15秒リール用ナレーション。【重要】タグ・ポーズを除いた本文は必ず60〜70文字以内。これを超えると15秒に収まらない。短く、鋭く。ルール：車名から始めない。記事の中で最もインパクトのある一節から入る。「実は…」「一切の…」「残ったのは…」のような、聴いた人が「ん？何の話？」と止まるフックから始める。【構成】フック1文＋補足1文＋ブランドメッセージ。合計2〜3文。それ以上は長すぎる。【締めくくり】最後にブランドメッセージを入れる。必ず「ハイトップコーポレーション」のフルネームと「マイ パッション イズ ワン コード」を含めること。ElevenLabs v3オーディオタグ付き。冒頭は [confident] で始める。締めは [pause 1s][calm] でブランドメッセージ。数字はすべてカタカナ読みで書く。参考例（これがちょうど15秒）：[confident] 実は、クロスオーバーSUVという言葉は存在しなかった。[pause 0.8s] ハリアーが創り出した概念だ。[pause 1s][calm] ハイトップコーポレーション。[pause 0.5s] マイ パッション イズ ワン コード。）",
   "seo": {
-    "metaDescription": "（120〜140文字。検索表示用）",
-    "keywords": "（5〜8語、カンマ区切り）",
-    "ogDescription": "（80〜100文字。SNS共有時表示）"
-  }
+    "metaDescription": "（60〜120文字。検索結果に表示される説明文。車名・年式・特徴を自然に含める。HI-TOP CORPORATIONの名前も入れる）",
+    "keywords": "（カンマ区切り10〜15個。車名、ブランド、車種カテゴリ、年式、特徴的なスペック、HI-TOP等）",
+    "ogDescription": "（80〜120文字。SNSシェア時の説明文。感性に訴える表現で。subtitleより詳しく）"
+  },
+  "narrationText": "（音声読み上げ用テキスト。記事全体を1つの連続したナレーションとして構成する。【重要：数字の読み方】音声合成が正しく読めるよう、数字はすべて日本語の読みで書くこと。数字はカタカナで音を書くこと。例: 2.0→ニーテンゼロ、V8→ブイハチ、4WD→ヨンダブリューディー、300ps→サンビャクピーエス、6速→ロクソク、1960年→センキュウヒャクロクジュウネン、110→ヒャクジュウ。アルファベット略語もカタカナで書く（AMG→エーエムジー、GT→ジーティー）。固有名詞の読み：HI-TOP→ハイトップ、HI-TOP JOURNAL→ハイトップジャーナル、HI-TOP CORPORATION→ハイトップコーポレーション。以下のElevenLabs v3オーディオタグを適切に挿入すること：[calm]落ち着いたトーン（本文ベース）、[whispers]囁き（五感の繊細な描写）、[confident]自信のあるトーン（プルクォート・決め台詞）、[slow pace]ゆっくり（冒頭・重要フレーズ）、[pause Xs]間（セクション間に1〜2秒）。冒頭は[deep, authoritative]＋[pause 1.5s]で車名から始め、セクション間に[pause 1.5s]を入れ、プルクォートは[confident]で読む。【締めくくり】ナレーション終盤は2段構成にする。①[calm]または[whispers]で、この車にまつわるジーンとくる短いエピソードや情景描写を入れる（3〜5文）。その車が誰かの人生の一場面にどう寄り添うか、オーナーになった未来の一瞬、あるいはこの車が歩んできた時間への敬意など。聴いている人の心に残る小話にすること。毎回まったく異なるストーリーで。②その後[pause 1.5s]を挟み、[confident]でハイトップのブランドメッセージで締める。毎回異なる表現で、以下を自然に織り交ぜること：会社名『ハイトップ』『ハイトップコーポレーション』、スローガン『マイ パッション イズ ワン コード』。定型文にせず、車や記事の内容に合わせて毎回変えること。1500〜1800文字程度）"
 }
 `.trim()
 }
@@ -417,7 +417,7 @@ async function generateLpContent(
   const client = new Anthropic({ apiKey })
   const message = await client.messages.create({
     model: 'claude-sonnet-4-20250514',
-    max_tokens: 4096,
+    max_tokens: 8192,
     system: LP_SYSTEM_PROMPT,
     messages: [{
       role: 'user',
@@ -512,7 +512,7 @@ app.post('/api/generate', async (c) => {
   try {
     const message = await client.messages.create({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 4096,
+      max_tokens: 8192,
       system: LP_SYSTEM_PROMPT,
       messages: [{
         role: 'user',
