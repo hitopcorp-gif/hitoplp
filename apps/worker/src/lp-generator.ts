@@ -63,6 +63,12 @@ function splitVehicleName(name: string): TitleLine[] {
   for (let i = 2; i < words.length; i++) {
     if (isGradeWord(words[i])) { gradeIdx = i; break }
   }
+  // 短い車名のフォールバック: words[1] が grade-like なら i=1 で採用
+  // 例) "HUMMER H1 ALPHA" → words=[HUMMER, H1, ALPHA], H1 が grade-like
+  //     → "HUMMER" (brand) / "H1 ALPHA" (grade) の 2 行表示。1 行べた書きを回避。
+  if (gradeIdx === -1 && words.length >= 2 && isGradeWord(words[1])) {
+    gradeIdx = 1
+  }
   if (gradeIdx === -1) {
     return splitIntoLines(name).map(t => ({ text: t, type: 'brand' }))
   }

@@ -549,14 +549,118 @@ async function requireAdmin(c: any, next: () => Promise<void>) {
   await next()
 }
 
+// ── ElevenLabs TTS 共通ヘルパー（既存 /api/tts と同等処理）──
+//    narrationText を音声化して R2 に保存し、フルURLを返す。
+async function generateTtsAudio(
+  env: Env,
+  slug: string,
+  text: string,
+): Promise<string | null> {
+  if (!env.ELEVENLABS_API_KEY || !env.ELEVENLABS_VOICE_ID) return null
+  if (!text || text.trim().length === 0) return null
+
+  const response = await fetch(
+    `https://api.elevenlabs.io/v1/text-to-speech/${env.ELEVENLABS_VOICE_ID}`,
+    {
+      method: 'POST',
+      headers: {
+        'xi-api-key': env.ELEVENLABS_API_KEY,
+        'Content-Type': 'application/json',
+        'Accept': 'audio/mpeg',
+      },
+      body: JSON.stringify({
+        text,
+        model_id: 'eleven_v3',
+        language_code: 'ja',
+        voice_settings: { stability: 0.6, similarity_boost: 0.8, style: 0.4 },
+      }),
+    },
+  )
+  if (!response.ok) {
+    console.error('ElevenLabs TTS failed:', response.status, await response.text())
+    return null
+  }
+  const audioBuffer = await response.arrayBuffer()
+  const key = `audio/${slug}.mp3`
+  await env.IMAGES.put(key, audioBuffer, {
+    httpMetadata: { contentType: 'audio/mpeg' },
+  })
+  return `https://hitoplp-api.hitopcorp.workers.dev/api/image/${key}`
+}
+
+// ── Admin API: 車種から英語車名 + シチュエーション + カラー を Haiku で判定 ──
+//    `/lp-publish` スキルから呼出（スキル側に ANTHROPIC_API_KEY を持たせないため）
+app.post('/api/admin/detect-metadata', requireAdmin, async (c) => {
+  type DetectBody = {
+    rawName: string
+    year: number
+    customContent?: string
+  }
+  let body: DetectBody
+  try {
+    body = await c.req.json<DetectBody>()
+  } catch {
+    return c.json({ error: 'invalid JSON body' }, 400)
+  }
+  if (!body.rawName) return c.json({ error: 'rawName required' }, 400)
+
+  const client = new Anthropic({ apiKey: c.env.ANTHROPIC_API_KEY })
+  const prompt = `HI-TOP CORPORATION の中古車LPを作る。次の車について **JSON のみ** で答えて。
+
+入力:
+- 車名（マスター記載・日英混在ありえる）: ${body.rawName}
+- 年式: ${body.year}
+- 特徴/カスタム内容:
+${(body.customContent ?? '').slice(0, 1500)}
+
+出力JSONフォーマット（前後に説明文不要、JSONのみ）:
+{
+  "name_en": "<英語LPタイトル：例 'HUMMER H1 ALPHA Final Edition' / 'Land Rover Defender 110 X-Dynamic HSE' / 'Porsche 911 Carrera S'。メーカー名+モデル名+グレードを公式英語表記で。括弧・カタカナ禁止>",
+  "situation": "<次の中から1つ: city/coast/travel/night/speed/possession>",
+  "colorTemplate": "<次の中から1つ: dark/warm/open>",
+  "reason": "<選定理由 50字以内>"
+}
+
+参考:
+- city = 都市スポーツ系 (AMG, M, GT-R等)
+- coast = カブリオレ・オープンカー
+- travel = SUV (レンジローバー, カイエン, GLS等)
+- night = 重厚SUV/フラッグシップ (Gクラス, エスカレード, ウルス等)
+- speed = ピュアスポーツ (911, コルベット, フェラーリ等)
+- possession = ヴィンテージ・希少車 (H1, 旧車等)
+
+カラーは situation との相性:
+- dark: city/night/speed
+- warm: possession (歴史・素材感)
+- open: coast/travel (明るさ)
+`
+
+  try {
+    const msg = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 400,
+      messages: [{ role: 'user', content: prompt }],
+    })
+    const text = msg.content[0].type === 'text' ? msg.content[0].text : ''
+    const m = text.match(/\{[\s\S]*\}/)
+    if (!m) return c.json({ error: 'AI parse failed' }, 502)
+    return c.json(JSON.parse(m[0]))
+  } catch (e: any) {
+    console.error('detect-metadata error:', e)
+    return c.json({ error: 'detection failed', detail: String(e?.message ?? e) }, 500)
+  }
+})
+
 // ── Admin API: 車両LPの自動生成（外部スキル `/lp-publish` 用エンドポイント）──
 //    入力: vehicleId, slug, basicInfo, situation, colorTemplate, photos (配列)
 //    動作:
-//      1. Anthropic で LEON 文体 content 生成
-//      2. lp-generator.ts で HTML 生成
-//      3. R2 に `lp/{slug}.html` として配置（Cache-Control: no-cache）
-//      4. **draft 扱い**: `lp/index.json` には追加しない → ギャラリー (/) に出ない
-//    返却: { slug, previewUrl, status: 'draft', generatedContent }
+//      1. Anthropic で LEON 文体 content 生成（narrationText含む）
+//      2. ElevenLabs で TTS 音声生成 → R2 配置 → audioUrl
+//      3. lp-generator.ts で HTML 生成（audioUrl 埋込み）
+//      4. R2 に `lp/{slug}.html` として配置
+//      5. **draft 扱い**: `lp/index.json` には追加しない → ギャラリー (/) に出ない
+//    返却: { slug, previewUrl, audioUrl, generatedContent, ... }
+//    Firestore 書込は呼出側スキルの責務（admin ダッシュボード表示はそちらで担保）
 //    認証: X-Admin-API-Key ヘッダ必須
 app.post('/api/admin/lp/create', requireAdmin, async (c) => {
   type AdminLpCreateBody = {
@@ -567,8 +671,8 @@ app.post('/api/admin/lp/create', requireAdmin, async (c) => {
     colorTemplate?: ColorTemplate
     photos: CarPhoto[]
     detailPhotoUrls?: [string, string, string, string]
-    audioUrl?: string
     overrideContent?: GeneratedContent  // 既に生成済みの content を再利用したい場合
+    skipTts?: boolean                   // TTS をスキップしたい場合（テスト用）
   }
 
   let body: AdminLpCreateBody
@@ -598,7 +702,13 @@ app.post('/api/admin/lp/create', requireAdmin, async (c) => {
       body.overrideContent ??
       (await generateLpContent(c.env.ANTHROPIC_API_KEY, body.basicInfo, situation, colorTemplate))
 
-    // 2. Vehicle オブジェクトを構築（R2書込前のスナップショット）
+    // 2. TTS 音声生成（narrationText があれば）
+    let audioUrl: string | null = null
+    if (!body.skipTts && content.narrationText) {
+      audioUrl = await generateTtsAudio(c.env, body.slug, content.narrationText)
+    }
+
+    // 3. Vehicle オブジェクトを構築
     const now = new Date()
     const vehicle: Vehicle = {
       id: body.vehicleId,
@@ -609,21 +719,21 @@ app.post('/api/admin/lp/create', requireAdmin, async (c) => {
       photos: body.photos,
       generatedContent: content,
       detailPhotoUrls: body.detailPhotoUrls,
-      audioUrl: body.audioUrl,
+      audioUrl: audioUrl ?? undefined,
       status: 'draft',
       createdAt: now,
       updatedAt: now,
     }
 
-    // 3. HTML 生成
+    // 4. HTML 生成（audioUrl 埋込み）
     const html = generateLpHtml(vehicle, content, false)
 
-    // 4. R2 にdraft として配置（index.json は更新しない＝公開しない）
+    // 5. R2 にdraft として配置
     await c.env.IMAGES.put(`lp/${body.slug}.html`, html, {
       httpMetadata: { contentType: 'text/html; charset=utf-8' },
     })
 
-    // 5. 結果返却
+    // 6. 結果返却
     return c.json({
       slug: body.slug,
       vehicleId: body.vehicleId,
@@ -631,6 +741,7 @@ app.post('/api/admin/lp/create', requireAdmin, async (c) => {
       status: 'draft',
       situation,
       colorTemplate,
+      audioUrl,
       generatedContent: content,
     })
   } catch (e: any) {
