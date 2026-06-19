@@ -416,7 +416,7 @@ async function generateLpContent(
 
   const client = new Anthropic({ apiKey })
   const message = await client.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-sonnet-4-6',
     max_tokens: 8192,
     system: LP_SYSTEM_PROMPT,
     messages: [{
@@ -511,7 +511,7 @@ app.post('/api/generate', async (c) => {
 
   try {
     const message = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 8192,
       system: LP_SYSTEM_PROMPT,
       messages: [{
