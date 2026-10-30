@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Vehicle, GeneratedContent } from '@/types'
 import { generateLpHtml } from '@/lib/lp-generator'
+import { LP_PUBLIC_BASE, LP_PUBLIC_LABEL } from '@/lib/utils'
 
 interface Props {
   vehicle: Vehicle
@@ -42,13 +43,13 @@ export function LpPreview({ vehicle, content }: Props) {
           <div className="w-3 h-3 rounded-full bg-white/20" />
         </div>
         <a
-          href={`https://hitoplp-api.hitopcorp.workers.dev/${vehicle.slug}`}
+          href={`${LP_PUBLIC_BASE}/${vehicle.slug}`}
           target="_blank"
           rel="noopener noreferrer"
           className="flex-1 bg-white/5 rounded px-3 py-1 hover:bg-white/10 transition-colors"
         >
           <span className="text-xs text-white/30">
-            hitoplp-api.hitopcorp.workers.dev/{vehicle.slug}
+            {LP_PUBLIC_LABEL}/{vehicle.slug}
           </span>
         </a>
         {/* Open in browser */}

@@ -14,6 +14,7 @@ import { mergeVideoAudio } from '@/lib/merge-video'
 import { AccordionSection, EditField, EditTextarea } from '@/components/vehicle-detail/edit-primitives'
 import { EditBasicInfoSection } from '@/components/vehicle-detail/EditBasicInfoSection'
 import { EditPhotosSection } from '@/components/vehicle-detail/EditPhotosSection'
+import { LP_PUBLIC_BASE, LP_PUBLIC_LABEL } from '@/lib/utils'
 import {
   ChevronLeft, Eye, Globe, RotateCcw, BadgeCheck, Edit, Sparkles, Check, Trash2, Volume2,
   Video, Image, Copy, Download, Play, RefreshCw, Instagram, Film
@@ -370,7 +371,7 @@ export function VehicleDetailPage() {
           )}
           {vehicle.status === 'published' && (
             <a
-              href={`https://hitoplp-api.hitopcorp.workers.dev/${vehicle.slug}`}
+              href={`${LP_PUBLIC_BASE}/${vehicle.slug}`}
               target="_blank"
               rel="noopener noreferrer"
               title="本番を開く"
@@ -434,14 +435,14 @@ export function VehicleDetailPage() {
           <div className="space-y-6">
             {vehicle.status === 'published' && (
               <a
-                href={`https://hitoplp-api.hitopcorp.workers.dev/${vehicle.slug}`}
+                href={`${LP_PUBLIC_BASE}/${vehicle.slug}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-between px-5 py-3 bg-brand-gold/5 border border-brand-gold/30 hover:border-brand-gold transition-all group"
               >
                 <div>
                   <p className="text-[10px] tracking-widest text-brand-gold/60 uppercase mb-0.5">公開中 — 本番URL</p>
-                  <p className="text-sm text-brand-gold font-light">hitoplp-api.hitopcorp.workers.dev/{vehicle.slug}</p>
+                  <p className="text-sm text-brand-gold font-light">{LP_PUBLIC_LABEL}/{vehicle.slug}</p>
                 </div>
                 <Globe className="w-4 h-4 text-brand-gold/50 group-hover:text-brand-gold transition-colors" />
               </a>
@@ -1466,7 +1467,7 @@ function SnsTab({ vehicle, vehicleId }: { vehicle: Vehicle; vehicleId: string })
         </ol>
         {vehicle.status === 'published' && (
           <p className="text-xs text-brand-gold/40 pt-2 border-t border-brand-gold/10">
-            LP URL: hitoplp-api.hitopcorp.workers.dev/{vehicle.slug}
+            LP URL: {LP_PUBLIC_LABEL}/{vehicle.slug}
           </p>
         )}
       </div>

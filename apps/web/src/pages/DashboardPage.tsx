@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Plus, LogOut, ExternalLink, BadgeCheck } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import type { Vehicle } from '@/types'
+import { LP_PUBLIC_BASE } from '@/lib/utils'
 import { motion } from 'framer-motion'
 
 export function DashboardPage() {
@@ -34,7 +35,7 @@ export function DashboardPage() {
         </div>
         <div className="flex items-center gap-4">
           <a
-            href="https://hitoplp-api.hitopcorp.workers.dev"
+            href={`${LP_PUBLIC_BASE}/`}
             target="_blank"
             rel="noopener noreferrer"
             className="text-xs text-white/40 hover:text-white flex items-center gap-1.5 transition-colors"
