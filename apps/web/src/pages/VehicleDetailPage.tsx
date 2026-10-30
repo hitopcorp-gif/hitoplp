@@ -2,13 +2,14 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { doc, getDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import { uploadObject, updateLpIndex } from '@/lib/api'
 import type { Vehicle, GeneratedContent, CarBasicInfo, CarPhoto } from '@/types'
 import { Button } from '@/components/ui/button'
 import { LpPreview } from '@/components/LpPreview'
 import { generateContent } from '@/lib/ai'
 import { generateLpHtml } from '@/lib/lp-generator'
 import { generateNarration } from '@/lib/tts'
-import { generateVerticalImage, generateReelVideo } from '@/lib/reel'
+import { generateVerticalImage, generateReelVideo, forgetUnsavedReelOutputs } from '@/lib/reel'
 import { generateFeedImage, generateOgpImage } from '@/lib/sns-image'
 import { mergeVideoAudio } from '@/lib/merge-video'
 import { AccordionSection, EditField, EditTextarea } from '@/components/vehicle-detail/edit-primitives'
@@ -20,16 +21,6 @@ import {
   Video, Image, Copy, Download, Play, RefreshCw, Instagram, Film
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-
-interface LpIndexEntry {
-  slug: string
-  name: string
-  nameJa: string
-  year: number
-  price: string
-  heroUrl: string
-  status?: 'published' | 'sold'
-}
 
 export function VehicleDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -84,17 +75,8 @@ export function VehicleDetailPage() {
         await handleSaveEdit()
       }
 
-      // 1. Firestoreを先に更新（権威的な状態）
-      await updateDoc(doc(db, 'vehicles', id), {
-        status: nextStatus,
-        publishedAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      })
-      // 2. UIを即時更新
-      setVehicle((prev) => prev ? { ...prev, status: nextStatus } : prev)
-
-      // 3. R2アップロード（ベストエフォート）
-      const API_BASE = import.meta.env.VITE_API_BASE_URL
+      // 1. 公開先（R2 の LP 本文と一覧）を先に更新する。
+      //    失敗したら Firestore の状態は変えずにエラーを出す（同じボタンでやり直せる）
       if (nextStatus === 'published' && vehicle.generatedContent) {
         const content = editedContent ?? vehicle.generatedContent
         const basicInfo = editedBasicInfo ?? vehicle.basicInfo
@@ -122,12 +104,7 @@ export function VehicleDetailPage() {
         setPublishPhase('LP生成中...')
         const html = generateLpHtml(vehicleForHtml, content, false)
         setPublishPhase('アップロード中...')
-        const uploadRes = await fetch(`${API_BASE}/api/upload/lp/${vehicle.slug}.html`, {
-          method: 'PUT',
-          headers: { 'content-type': 'text/html; charset=utf-8' },
-          body: html,
-        })
-        if (!uploadRes.ok) throw new Error(`R2 upload failed: ${uploadRes.status}`)
+        await uploadObject(`lp/${vehicle.slug}.html`, html, 'text/html; charset=utf-8')
 
         // audioUrlをFirestoreに保存
         if (audioUrl) {
@@ -136,7 +113,7 @@ export function VehicleDetailPage() {
         }
 
         setPublishPhase('インデックス更新中...')
-        await updateLpIndex(API_BASE, vehicle.slug, {
+        await updateLpIndex(vehicle.slug, {
           slug: vehicle.slug,
           name: basicInfo.name,
           nameJa: content.nameJa ?? '',
@@ -146,9 +123,17 @@ export function VehicleDetailPage() {
           status: 'published',
         })
       } else if (nextStatus === 'draft') {
-        const API_BASE2 = import.meta.env.VITE_API_BASE_URL
-        await updateLpIndex(API_BASE2, vehicle.slug, null)
+        setPublishPhase('一覧から外しています...')
+        await updateLpIndex(vehicle.slug, null)
       }
+
+      // 2. 公開先の更新が済んでから Firestore と画面の状態を変える
+      await updateDoc(doc(db, 'vehicles', id), {
+        status: nextStatus,
+        publishedAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      })
+      setVehicle((prev) => prev ? { ...prev, status: nextStatus } : prev)
     } catch (e) {
       console.error('Publish error:', e)
       setPublishError(e instanceof Error ? e.message : '公開処理中にエラーが発生しました')
@@ -158,41 +143,20 @@ export function VehicleDetailPage() {
     }
   }
 
-  async function updateLpIndex(apiBase: string, slug: string, entry: LpIndexEntry | null) {
-    // 現在のindex取得
-    let index: LpIndexEntry[] = []
-    try {
-      const res = await fetch(`${apiBase}/api/image/lp/index.json?t=${Date.now()}`, { cache: 'no-store' })
-      if (res.ok) index = await res.json()
-    } catch { /* 初回は空 */ }
-
-    if (entry === null) {
-      index = index.filter(e => e.slug !== slug)
-    } else {
-      index = index.filter(e => e.slug !== slug)
-      index.unshift(entry) // 新しい順に先頭へ
-    }
-
-    await fetch(`${apiBase}/api/upload/lp/index.json`, {
-      method: 'PUT',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(index),
-    })
-  }
-
   async function handleDelete() {
     if (!id || !vehicle) return
     if (!window.confirm('このLPを削除しますか？この操作は取り消せません。')) return
-    // Remove from R2 index + delete HTML
-    const API_BASE = import.meta.env.VITE_API_BASE_URL
+    // 公開一覧から外し、LP 本文を空で上書きしてから Firestore を消す。
+    // 公開先を片付けられなかった時は車両データを残す（消すと管理画面からやり直せなくなる）
+    setPublishError('')
     try {
-      await updateLpIndex(API_BASE, vehicle.slug, null)
-      await fetch(`${API_BASE}/api/upload/lp/${vehicle.slug}.html`, {
-        method: 'PUT',
-        headers: { 'content-type': 'text/html' },
-        body: '',
-      })
-    } catch { /* best effort */ }
+      await updateLpIndex(vehicle.slug, null)
+      await uploadObject(`lp/${vehicle.slug}.html`, '', 'text/html')
+    } catch (e) {
+      console.error('LP delete (R2) failed:', e)
+      setPublishError(`公開ページを片付けられなかったため削除を中止しました: ${e instanceof Error ? e.message : String(e)}`)
+      return
+    }
     await deleteDoc(doc(db, 'vehicles', id))
     navigate('/')
   }
@@ -200,6 +164,7 @@ export function VehicleDetailPage() {
   async function handleMarkSold() {
     if (!id || !vehicle) return
     setPublishing(true)
+    setPublishError('')
     setPublishPhase('売約済みに変更中...')
     try {
       // 公開系処理の前に未保存編集を保存（最新の basicInfo / photos が SOLD LP に焼き込まれるように）
@@ -207,14 +172,7 @@ export function VehicleDetailPage() {
         await handleSaveEdit()
       }
 
-      await updateDoc(doc(db, 'vehicles', id), {
-        status: 'sold',
-        soldAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      })
-      setVehicle((prev) => prev ? { ...prev, status: 'sold' } : prev)
-
-      const API_BASE = import.meta.env.VITE_API_BASE_URL
+      // 公開先（SOLD の LP 本文と一覧）を先に更新し、済んでから Firestore と画面を sold にする
       const content = editedContent ?? vehicle.generatedContent
       const basicInfo = editedBasicInfo ?? vehicle.basicInfo
       const photos = editedPhotos ?? vehicle.photos
@@ -229,17 +187,13 @@ export function VehicleDetailPage() {
           detailPhotoUrls: detailPhotoUrls ?? vehicle.detailPhotoUrls,
         }
         const html = generateLpHtml(soldVehicle, content, false)
-        await fetch(`${API_BASE}/api/upload/lp/${vehicle.slug}.html`, {
-          method: 'PUT',
-          headers: { 'content-type': 'text/html; charset=utf-8' },
-          body: html,
-        })
+        await uploadObject(`lp/${vehicle.slug}.html`, html, 'text/html; charset=utf-8')
       }
 
       // Update index with sold status
       setPublishPhase('インデックス更新中...')
       const heroUrl = photos.find(p => p.tag === 'hero')?.url ?? photos[0]?.url ?? ''
-      await updateLpIndex(API_BASE, vehicle.slug, {
+      await updateLpIndex(vehicle.slug, {
         slug: vehicle.slug,
         name: basicInfo.name,
         nameJa: editedContent?.nameJa ?? vehicle.generatedContent?.nameJa ?? '',
@@ -248,8 +202,16 @@ export function VehicleDetailPage() {
         heroUrl,
         status: 'sold',
       })
+
+      await updateDoc(doc(db, 'vehicles', id), {
+        status: 'sold',
+        soldAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      })
+      setVehicle((prev) => prev ? { ...prev, status: 'sold' } : prev)
     } catch (e) {
       console.error('Mark sold error:', e)
+      setPublishError(e instanceof Error ? e.message : '売約済みへの変更中にエラーが発生しました')
     } finally {
       setPublishing(false)
       setPublishPhase('')
@@ -1050,6 +1012,7 @@ function SnsTab({ vehicle, vehicleId }: { vehicle: Vehicle; vehicleId: string })
 
   async function handleRegenerateReel() {
     // Clear vertical image to force re-generation
+    forgetUnsavedReelOutputs(vehicle.slug)
     setVerticalImageUrl('')
     await updateDoc(doc(db, 'vehicles', vehicleId), { verticalImageUrl: '', reelVideoUrl: '' })
     setReelVideoUrl('')

@@ -23,8 +23,17 @@ jobs:
       - name: TypeScript check
         run: cd apps/web && npx tsc --noEmit
 
+      - name: Worker TypeScript check
+        run: cd apps/worker && npm run typecheck
+
+      - name: Worker tests (auth / upload policy / lp index)
+        run: cd apps/worker && npm test
+
       - name: ESLint
         run: cd apps/web && npm run lint
+
+      - name: Web tests
+        run: cd apps/web && npm test
 
       - name: Build
         run: cd apps/web && npm run build
@@ -56,7 +65,8 @@ jobs:
 
   deploy-web:
     name: Deploy Web (Cloudflare Pages)
-    needs: quality
+    # 管理画面は新しい Worker の窓口（認証・/api/lp-index）を前提にするので、Worker の反映が成功してから出す
+    needs: [quality, deploy-worker]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     steps:
