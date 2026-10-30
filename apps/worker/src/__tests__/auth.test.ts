@@ -63,6 +63,37 @@ describe('verifyFirebaseIdToken', () => {
     await expect(verifyFirebaseIdToken(token, PROJECT_ID, { nowMs: NOW_MS, fetcher: down })).rejects.toBeInstanceOf(AuthUnavailableError)
   })
 
+  it('同時に来たリクエストは公開鍵の取得1回を待ち合わせる', async () => {
+    const signer = await makeSigner()
+    let calls = 0
+    const slow = async (url: string) => {
+      calls++
+      await new Promise((r) => setTimeout(r, 20))
+      return jwksFetcher(signer.jwks)(url)
+    }
+    const token = await signer.sign(validClaims(NOW_SEC))
+    const results = await Promise.all(
+      Array.from({ length: 10 }, () => verifyFirebaseIdToken(token, PROJECT_ID, { nowMs: NOW_MS, fetcher: slow })),
+    )
+    expect(calls).toBe(1)
+    expect(results.every((r) => r?.uid === ALLOWED_UID)).toBe(true)
+  })
+
+  it('公開鍵の取得に失敗した直後10秒は取りに行かずに AuthUnavailableError', async () => {
+    const signer = await makeSigner()
+    const token = await signer.sign(validClaims(NOW_SEC))
+    let calls = 0
+    const down = async () => { calls++; return new Response('down', { status: 503 }) }
+    for (let i = 0; i < 5; i++) {
+      await expect(verifyFirebaseIdToken(token, PROJECT_ID, { nowMs: NOW_MS + i * 1000, fetcher: down }))
+        .rejects.toBeInstanceOf(AuthUnavailableError)
+    }
+    expect(calls).toBe(1)
+    // 10秒たてば取り直し、復旧していれば通る
+    const user = await verifyFirebaseIdToken(token, PROJECT_ID, { nowMs: NOW_MS + 11_000, fetcher: jwksFetcher(signer.jwks) })
+    expect(user).toEqual({ uid: ALLOWED_UID })
+  })
+
   it('でたらめな kid が続いても公開鍵の取り直しは60秒に1回まで', async () => {
     const signer = await makeSigner()
     let calls = 0

@@ -52,6 +52,22 @@ export function normalizeContentType(raw: string | undefined): string {
   return (raw ?? '').split(';')[0].trim().toLowerCase()
 }
 
+// 中身の先頭が申告した種類と合うか（画像キーに HTML 等を入れさせない）。HTML は確かめない。
+export function matchesSignature(contentType: string, bytes: Uint8Array): boolean {
+  const ascii = (from: number, to: number) => String.fromCharCode(...bytes.subarray(from, to))
+  switch (contentType) {
+    case 'image/jpeg': return bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff
+    case 'image/png': return ascii(1, 4) === 'PNG' && bytes[0] === 0x89
+    case 'image/gif': return ascii(0, 6) === 'GIF87a' || ascii(0, 6) === 'GIF89a'
+    case 'image/webp': return ascii(0, 4) === 'RIFF' && ascii(8, 12) === 'WEBP'
+    case 'image/avif':
+    case 'image/heic':
+    case 'image/heif':
+    case 'video/mp4': return ascii(4, 8) === 'ftyp'
+    default: return true
+  }
+}
+
 // GET /api/image で返してよいか。保存済み LP の生 HTML（lp/*.html）は出さない。
 // 一覧 lp/index.json は在庫ページが読むので残す。
 export function isPublicObjectKey(key: string): boolean {

@@ -37,6 +37,8 @@ export class FakeR2Bucket {
   private seq = 0
   // 試験で「読んだ直後に他の人が書いた」状況を作るためのフック
   beforePut: ((key: string) => Promise<void>) | null = null
+  // 試験で R2 の回数制限（429）を起こす回数
+  failNextPuts = 0
 
   async get(key: string): Promise<FakeR2Object | null> {
     return this.objects.get(key) ?? null
@@ -47,6 +49,10 @@ export class FakeR2Bucket {
       const hook = this.beforePut
       this.beforePut = null
       await hook(key)
+    }
+    if (this.failNextPuts > 0) {
+      this.failNextPuts--
+      throw new Error('put: Reduce your concurrent request rate for the same object. (10058)')
     }
     if (!preconditionHolds(this.objects.get(key), opts.onlyIf)) return null
     const data = typeof value === 'string' ? new TextEncoder().encode(value) : new Uint8Array(value)

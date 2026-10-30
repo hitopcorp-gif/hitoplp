@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { LP_INDEX_KEY, LpIndexUnreadableError, parseLpIndexUpdate, updateLpIndex, type LpIndexEntry } from '../lp-index'
+import {
+  LP_INDEX_KEY, LpIndexConflictError, LpIndexUnreadableError, parseLpIndexUpdate, updateLpIndex, type LpIndexEntry,
+} from '../lp-index'
 import { FakeR2Bucket } from './helpers'
 
 function entry(slug: string, status: 'published' | 'sold' = 'published'): LpIndexEntry {
@@ -32,6 +34,19 @@ describe('updateLpIndex', () => {
     }
     await updateLpIndex(bucket.asR2(), { slug: 'mine', entry: entry('mine') })
     expect((await readIndex(bucket)).map((e) => e.slug).sort()).toEqual(['a', 'mine', 'other'])
+  })
+
+  it('R2 の回数制限で書けなかった時は待ってやり直す。やり直しが尽きたら「混み合い」で止める', async () => {
+    const noWait = async () => {}
+    const bucket = new FakeR2Bucket()
+    await bucket.put(LP_INDEX_KEY, JSON.stringify([entry('a')]))
+    bucket.failNextPuts = 3
+    await updateLpIndex(bucket.asR2(), { slug: 'b', entry: entry('b') }, noWait)
+    expect((await readIndex(bucket)).map((e) => e.slug)).toEqual(['b', 'a'])
+
+    bucket.failNextPuts = 100
+    await expect(updateLpIndex(bucket.asR2(), { slug: 'c', entry: entry('c') }, noWait)).rejects.toBeInstanceOf(LpIndexConflictError)
+    expect((await readIndex(bucket)).map((e) => e.slug)).toEqual(['b', 'a'])
   })
 
   it('一覧が壊れて読めない時は上書きしない', async () => {

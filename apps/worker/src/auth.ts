@@ -17,15 +17,22 @@ const JWKS_URL = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken
 const CLOCK_SKEW_SEC = 60
 // 知らない kid が来ても Google へ取りに行くのは最短この間隔まで（でたらめな kid での連打を防ぐ）
 const JWKS_MIN_REFRESH_MS = 60_000
+// 取得に失敗した直後は、この間は取りに行かずに 503 を返す（失敗中の連打で Google へ取りに行き続けない）
+const JWKS_FAILURE_COOLDOWN_MS = 10_000
 const JWKS_DEFAULT_TTL_MS = 60 * 60 * 1000
 
 export class AuthUnavailableError extends Error {}
 
 type JwksCache = { keys: Map<string, CryptoKey>; expiresAt: number; fetchedAt: number }
 let jwksCache: JwksCache | null = null
+// 同時に来たリクエストは、取得中の1回を待つ（それぞれが Google へ取りに行かない）
+let jwksInflight: Promise<JwksCache> | null = null
+let jwksFailedAt: number | null = null
 
 export function resetJwksCacheForTest(): void {
   jwksCache = null
+  jwksInflight = null
+  jwksFailedAt = null
 }
 
 type Fetcher = (url: string) => Promise<Response>
@@ -52,10 +59,40 @@ async function loadJwks(nowMs: number, fetcher: Fetcher): Promise<JwksCache> {
   return { keys, expiresAt: nowMs + ttl, fetchedAt: nowMs }
 }
 
+function refreshJwks(nowMs: number, fetcher: Fetcher): Promise<JwksCache> {
+  if (jwksInflight) return jwksInflight
+  if (jwksFailedAt !== null && nowMs - jwksFailedAt < JWKS_FAILURE_COOLDOWN_MS) {
+    return Promise.reject(new AuthUnavailableError('JWKS fetch failed recently; waiting before retry'))
+  }
+  jwksInflight = (async () => {
+    try {
+      const loaded = await loadJwks(nowMs, fetcher)
+      jwksCache = loaded
+      jwksFailedAt = null
+      return loaded
+    } catch (e) {
+      jwksFailedAt = nowMs
+      throw e instanceof AuthUnavailableError ? e : new AuthUnavailableError(`JWKS load failed: ${String(e)}`)
+    } finally {
+      jwksInflight = null
+    }
+  })()
+  return jwksInflight
+}
+
 async function getSigningKey(kid: string, nowMs: number, fetcher: Fetcher): Promise<CryptoKey | null> {
   const stale = !jwksCache || jwksCache.expiresAt <= nowMs
   const unknownKid = !!jwksCache && !jwksCache.keys.has(kid) && nowMs - jwksCache.fetchedAt >= JWKS_MIN_REFRESH_MS
-  if (stale || unknownKid) jwksCache = await loadJwks(nowMs, fetcher)
+  if (stale) {
+    await refreshJwks(nowMs, fetcher)
+  } else if (unknownKid) {
+    // 鍵の入れ替わり直後に備えて取り直す。取れなくても手元の鍵で判定を続ける（知らない kid なので無効になる）
+    try {
+      await refreshJwks(nowMs, fetcher)
+    } catch (e) {
+      if (!(e instanceof AuthUnavailableError)) throw e
+    }
+  }
   return jwksCache?.keys.get(kid) ?? null
 }
 

@@ -3,7 +3,7 @@ import { cors } from 'hono/cors'
 import Anthropic from '@anthropic-ai/sdk'
 import { generateLpHtml } from './lp-generator'
 import { requireAdmin, requireStaff } from './auth'
-import { isPublicObjectKey, normalizeContentType, uploadRuleFor, SLUG_PATTERN } from './upload-policy'
+import { isPublicObjectKey, matchesSignature, normalizeContentType, uploadRuleFor, SLUG_PATTERN } from './upload-policy'
 import { LpIndexConflictError, LpIndexUnreadableError, parseLpIndexUpdate, updateLpIndex } from './lp-index'
 import { SITUATION_DEFAULT_COLOR } from './types'
 import type {
@@ -186,6 +186,9 @@ app.put('/api/upload/:key{.+}', requireStaff, async (c) => {
   const body = await c.req.arrayBuffer()
   if (body.byteLength > rule.maxBytes) return c.json({ error: 'too large' }, 413)
   if (body.byteLength === 0 && !rule.allowEmpty) return c.json({ error: 'empty body' }, 400)
+  if (body.byteLength > 0 && !matchesSignature(contentType, new Uint8Array(body, 0, Math.min(16, body.byteLength)))) {
+    return c.json({ error: `body does not look like ${contentType}` }, 415)
+  }
 
   await c.env.IMAGES.put(key, body, {
     httpMetadata: { contentType: rule.storeAs ?? contentType },
@@ -225,6 +228,8 @@ app.get('/api/image/:key{.+}', async (c) => {
 
   const headers = new Headers()
   obj.writeHttpMetadata(headers)
+  // 保存時の種類のとおりに扱わせる（ブラウザに中身から推測させない）
+  headers.set('x-content-type-options', 'nosniff')
 
   // Ensure content-type is always set (Mac Safari rejects images without it)
   if (!headers.has('content-type')) {

@@ -74,16 +74,8 @@ export function VehicleDetailPage() {
         await handleSaveEdit()
       }
 
-      // 1. Firestoreを先に更新（権威的な状態）
-      await updateDoc(doc(db, 'vehicles', id), {
-        status: nextStatus,
-        publishedAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      })
-      // 2. UIを即時更新
-      setVehicle((prev) => prev ? { ...prev, status: nextStatus } : prev)
-
-      // 3. R2アップロード（失敗したら画面にエラーを出す）
+      // 1. 公開先（R2 の LP 本文と一覧）を先に更新する。
+      //    失敗したら Firestore の状態は変えずにエラーを出す（同じボタンでやり直せる）
       if (nextStatus === 'published' && vehicle.generatedContent) {
         const content = editedContent ?? vehicle.generatedContent
         const basicInfo = editedBasicInfo ?? vehicle.basicInfo
@@ -130,8 +122,17 @@ export function VehicleDetailPage() {
           status: 'published',
         })
       } else if (nextStatus === 'draft') {
+        setPublishPhase('一覧から外しています...')
         await updateLpIndex(vehicle.slug, null)
       }
+
+      // 2. 公開先の更新が済んでから Firestore と画面の状態を変える
+      await updateDoc(doc(db, 'vehicles', id), {
+        status: nextStatus,
+        publishedAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      })
+      setVehicle((prev) => prev ? { ...prev, status: nextStatus } : prev)
     } catch (e) {
       console.error('Publish error:', e)
       setPublishError(e instanceof Error ? e.message : '公開処理中にエラーが発生しました')
@@ -144,13 +145,16 @@ export function VehicleDetailPage() {
   async function handleDelete() {
     if (!id || !vehicle) return
     if (!window.confirm('このLPを削除しますか？この操作は取り消せません。')) return
-    // Remove from R2 index + delete HTML（空のHTMLで上書き）
+    // 公開一覧から外し、LP 本文を空で上書きしてから Firestore を消す。
+    // 公開先を片付けられなかった時は車両データを残す（消すと管理画面からやり直せなくなる）
+    setPublishError('')
     try {
       await updateLpIndex(vehicle.slug, null)
       await uploadObject(`lp/${vehicle.slug}.html`, '', 'text/html')
     } catch (e) {
-      // 一覧から外せなくても Firestore の削除は進める（従来どおり）。原因は console に残す
       console.error('LP delete (R2) failed:', e)
+      setPublishError(`公開ページを片付けられなかったため削除を中止しました: ${e instanceof Error ? e.message : String(e)}`)
+      return
     }
     await deleteDoc(doc(db, 'vehicles', id))
     navigate('/')
@@ -159,6 +163,7 @@ export function VehicleDetailPage() {
   async function handleMarkSold() {
     if (!id || !vehicle) return
     setPublishing(true)
+    setPublishError('')
     setPublishPhase('売約済みに変更中...')
     try {
       // 公開系処理の前に未保存編集を保存（最新の basicInfo / photos が SOLD LP に焼き込まれるように）
@@ -166,13 +171,7 @@ export function VehicleDetailPage() {
         await handleSaveEdit()
       }
 
-      await updateDoc(doc(db, 'vehicles', id), {
-        status: 'sold',
-        soldAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      })
-      setVehicle((prev) => prev ? { ...prev, status: 'sold' } : prev)
-
+      // 公開先（SOLD の LP 本文と一覧）を先に更新し、済んでから Firestore と画面を sold にする
       const content = editedContent ?? vehicle.generatedContent
       const basicInfo = editedBasicInfo ?? vehicle.basicInfo
       const photos = editedPhotos ?? vehicle.photos
@@ -202,8 +201,16 @@ export function VehicleDetailPage() {
         heroUrl,
         status: 'sold',
       })
+
+      await updateDoc(doc(db, 'vehicles', id), {
+        status: 'sold',
+        soldAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      })
+      setVehicle((prev) => prev ? { ...prev, status: 'sold' } : prev)
     } catch (e) {
       console.error('Mark sold error:', e)
+      setPublishError(e instanceof Error ? e.message : '売約済みへの変更中にエラーが発生しました')
     } finally {
       setPublishing(false)
       setPublishPhase('')

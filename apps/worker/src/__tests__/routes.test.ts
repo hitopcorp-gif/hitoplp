@@ -4,6 +4,8 @@ import { resetJwksCacheForTest } from '../auth'
 import { ALLOWED_UID, FakeR2Bucket, jwksFetcher, makeSigner, PROJECT_ID, validClaims, type TestSigner } from './helpers'
 
 const ADMIN_KEY = 'test-admin-key-xyz'
+// 中身の先頭が WebP の形をした最小のバイト列（RIFF....WEBP）
+const WEBP_BYTES = new TextEncoder().encode('RIFF\x10\x00\x00\x00WEBPVP8 ')
 
 function makeEnv(bucket: FakeR2Bucket, overrides: Record<string, string> = {}) {
   return {
@@ -109,7 +111,7 @@ describe('書き込み・課金系の窓口は認証なしでは通らない', (
 
   it('管理キーなら /lp-publish の写真キーへ書ける', async () => {
     const res = await app.request('/api/upload/vehicles/V0013/20261031-010203/01_hero_1280.webp', {
-      method: 'PUT', body: new Uint8Array([1, 2, 3]), headers: { 'content-type': 'image/webp', 'X-Admin-API-Key': ADMIN_KEY },
+      method: 'PUT', body: WEBP_BYTES, headers: { 'content-type': 'image/webp', 'X-Admin-API-Key': ADMIN_KEY },
     }, makeEnv(bucket))
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual({
@@ -128,6 +130,9 @@ describe('書き込み・課金系の窓口は認証なしでは通らない', (
     expect((await put('/api/upload/v-1761868800000-abc123.jpg', 'text/html')).status).toBe(415)
     expect((await put('/api/upload/v-1761868800000-abc123.svg', 'image/svg+xml')).status).toBe(415)
     expect((await put('/api/upload/v-1761868800000-abc123.jpg', 'image/jpeg', '')).status).toBe(400)
+    // 申告は画像でも中身が HTML なら断る
+    expect((await put('/api/upload/v-1761868800000-abc123.jpg', 'image/jpeg', '<html><script>alert(1)</script>')).status).toBe(415)
+    expect((await put('/api/upload/sns/reel/some-car.mp4', 'video/mp4', '<svg onload=alert(1)>')).status).toBe(415)
     expect(bucket.objects.size).toBe(0)
   })
 })
@@ -141,7 +146,9 @@ describe('GET /api/image', () => {
     const env = makeEnv(bucket)
     expect((await app.request('/api/image/lp/some-car.html', {}, env)).status).toBe(404)
     expect((await app.request('/api/image/lp/index.json', {}, env)).status).toBe(200)
-    expect((await app.request('/api/image/v-1761868800000-abc123.webp', {}, env)).status).toBe(200)
+    const img = await app.request('/api/image/v-1761868800000-abc123.webp', {}, env)
+    expect(img.status).toBe(200)
+    expect(img.headers.get('x-content-type-options')).toBe('nosniff')
     // LP そのものの配信（/:slug）は今まで通り
     expect((await app.request('/some-car', {}, env)).status).toBe(200)
   })

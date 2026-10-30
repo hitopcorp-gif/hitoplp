@@ -9,9 +9,11 @@ import { SLUG_PATTERN } from './upload-policy'
 
 export const LP_INDEX_KEY = 'lp/index.json'
 const MAX_ATTEMPTS = 8
-const BACKOFF_BASE_MS = 20
+// R2 は同じキーへの書き込みを毎秒1回程度に制限する（https://developers.cloudflare.com/r2/platform/limits/）
+const BACKOFF_BASE_MS = 250
+const BACKOFF_MAX_MS = 2000
 
-const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
+const defaultSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
 
 export type LpIndexEntry = {
   slug: string
@@ -81,18 +83,32 @@ async function readIndex(bucket: R2Bucket): Promise<{ obj: R2ObjectBody | null; 
   }
 }
 
-export async function updateLpIndex(bucket: R2Bucket, update: LpIndexUpdate): Promise<{ count: number }> {
+export async function updateLpIndex(
+  bucket: R2Bucket,
+  update: LpIndexUpdate,
+  sleep: (ms: number) => Promise<void> = defaultSleep,
+): Promise<{ count: number }> {
   const httpMetadata = { contentType: 'application/json' }
+  let lastError = ''
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-    if (attempt > 0) await sleep(BACKOFF_BASE_MS * 2 ** (attempt - 1) + Math.random() * 50)
+    if (attempt > 0) {
+      await sleep(Math.min(BACKOFF_BASE_MS * 2 ** (attempt - 1), BACKOFF_MAX_MS) + Math.random() * 250)
+    }
 
     const { obj, current } = await readIndex(bucket)
     const next = applyUpdate(current, update)
     // 読んだ版のままの時だけ書く。一覧がまだ無い時（初回だけ）は「まだ無ければ作る」。
     // どちらも途中で他の更新が入っていたら null が返る → 読み直す
     const onlyIf = obj ? { etagMatches: obj.etag } : new Headers({ 'If-None-Match': '*' })
-    const written = await bucket.put(LP_INDEX_KEY, JSON.stringify(next), { httpMetadata, onlyIf })
-    if (written) return { count: next.length }
+    try {
+      const written = await bucket.put(LP_INDEX_KEY, JSON.stringify(next), { httpMetadata, onlyIf })
+      if (written) return { count: next.length }
+      lastError = 'precondition failed'
+    } catch (e) {
+      // 書き込みの回数制限（429）などは、待ってから読み直してやり直す
+      lastError = String(e)
+      console.error('lp/index.json put failed (will retry):', lastError)
+    }
   }
-  throw new LpIndexConflictError('lp/index.json の更新が混み合っています。少し待ってやり直してください')
+  throw new LpIndexConflictError(`lp/index.json の更新が混み合っています。少し待ってやり直してください（${lastError}）`)
 }
