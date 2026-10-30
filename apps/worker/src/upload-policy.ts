@@ -61,9 +61,17 @@ export function detectImageType(bytes: Uint8Array): string | null {
   if (bytes[0] === 0x89 && ascii(1, 4) === 'PNG') return 'image/png'
   if (ascii(0, 6) === 'GIF87a' || ascii(0, 6) === 'GIF89a') return 'image/gif'
   if (ascii(0, 4) === 'RIFF' && ascii(8, 12) === 'WEBP') return 'image/webp'
-  if (ascii(4, 8) === 'ftyp') return ['avif', 'avis'].includes(ascii(8, 12)) ? 'image/avif' : 'image/heic'
+  if (ascii(4, 8) === 'ftyp') {
+    // ftyp は動画（isom / mp42 等）にも使われるので、画像の brand だけを画像とみなす
+    const brand = ascii(8, 12)
+    if (AVIF_BRANDS.includes(brand)) return 'image/avif'
+    if (HEIF_BRANDS.includes(brand)) return 'image/heic'
+  }
   return null
 }
+
+const AVIF_BRANDS = ['avif', 'avis']
+const HEIF_BRANDS = ['heic', 'heix', 'hevc', 'hevx', 'heim', 'heis', 'mif1', 'msf1']
 
 // 保存する content-type を決める。中身が申告した種類として成り立たなければ null（→ 415）。
 export function storedContentType(rule: UploadRule, declared: string, bytes: Uint8Array): string | null {

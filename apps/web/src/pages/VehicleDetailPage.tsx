@@ -9,7 +9,7 @@ import { LpPreview } from '@/components/LpPreview'
 import { generateContent } from '@/lib/ai'
 import { generateLpHtml } from '@/lib/lp-generator'
 import { generateNarration } from '@/lib/tts'
-import { generateVerticalImage, generateReelVideo } from '@/lib/reel'
+import { generateVerticalImage, generateReelVideo, forgetUnsavedReelOutputs } from '@/lib/reel'
 import { generateFeedImage, generateOgpImage } from '@/lib/sns-image'
 import { mergeVideoAudio } from '@/lib/merge-video'
 import { AccordionSection, EditField, EditTextarea } from '@/components/vehicle-detail/edit-primitives'
@@ -1011,6 +1011,7 @@ function SnsTab({ vehicle, vehicleId }: { vehicle: Vehicle; vehicleId: string })
 
   async function handleRegenerateReel() {
     // Clear vertical image to force re-generation
+    forgetUnsavedReelOutputs(vehicle.slug)
     setVerticalImageUrl('')
     await updateDoc(doc(db, 'vehicles', vehicleId), { verticalImageUrl: '', reelVideoUrl: '' })
     setReelVideoUrl('')

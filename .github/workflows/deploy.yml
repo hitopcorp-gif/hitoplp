@@ -32,6 +32,9 @@ jobs:
       - name: ESLint
         run: cd apps/web && npm run lint
 
+      - name: Web tests
+        run: cd apps/web && npm test
+
       - name: Build
         run: cd apps/web && npm run build
         env:

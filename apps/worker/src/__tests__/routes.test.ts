@@ -133,6 +133,19 @@ describe('書き込み・課金系の窓口は認証なしでは通らない', (
     expect((await put('/api/upload/sns/reel/some-car.mp4', 'video/mp4')).status).toBe(415)
   })
 
+  it('ftyp は画像の brand（heic / avif 等）だけを画像とみなし、mp4 は画像キーに入れられない', async () => {
+    const ftyp = (brand: string) => new TextEncoder().encode(`\x00\x00\x00\x18ftyp${brand}\x00\x00\x00\x00`)
+    const h = { 'X-Admin-API-Key': ADMIN_KEY }
+    const put = (path: string, type: string, body: Uint8Array) =>
+      app.request(path, { method: 'PUT', body, headers: { ...h, 'content-type': type } }, makeEnv(bucket))
+    expect((await put('/api/upload/v-1761868800000-abc123.heic', 'image/heic', ftyp('heic'))).status).toBe(200)
+    expect(bucket.objects.get('v-1761868800000-abc123.heic')?.contentType).toBe('image/heic')
+    expect((await put('/api/upload/v-1761868800000-abc124.avif', 'image/jpeg', ftyp('avif'))).status).toBe(200)
+    expect(bucket.objects.get('v-1761868800000-abc124.avif')?.contentType).toBe('image/avif')
+    expect((await put('/api/upload/v-1761868800000-abc125.jpg', 'image/jpeg', ftyp('isom'))).status).toBe(415)
+    expect((await put('/api/upload/sns/reel/some-car.mp4', 'video/mp4', ftyp('isom'))).status).toBe(200)
+  })
+
   it('認証があっても決められたキー・種類以外は書けない', async () => {
     const h = { 'X-Admin-API-Key': ADMIN_KEY }
     const put = (path: string, type: string, body: BodyInit = 'x') =>
