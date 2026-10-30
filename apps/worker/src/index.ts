@@ -181,8 +181,15 @@ app.get('/:slug{[a-z0-9-]+}', async (c) => {
 
   // 住所を hi-top.net/stock/ にするのは在庫一覧に載った車（公開中・SOLD）だけ。
   // 下書きは hi-top.net では404なので、住所はそのまま返し、検索にも載せない
+  let listed: boolean
+  try {
+    listed = await isListedLp(c.env.IMAGES, slug)
+  } catch (e) {
+    console.error('lp/index.json unreadable while serving LP:', String(e))
+    return c.text('ただいまこのページを表示できません。少し時間をおいてもう一度お試しください。', 503, { 'Retry-After': '120' })
+  }
   const html = await obj.text()
-  if (!(await isListedLp(c.env.IMAGES, slug))) {
+  if (!listed) {
     headers.set('x-robots-tag', 'noindex')
     return new Response(html, { headers })
   }

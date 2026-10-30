@@ -224,8 +224,10 @@ export function VehicleDetailPage() {
     setPublishing(true)
     setPublishError('')
     setPublishPhase('一覧から外しています...')
+    let removedFromIndex = false
     try {
       await updateLpIndex(vehicle.slug, null)
+      removedFromIndex = true
       await updateDoc(doc(db, 'vehicles', id), {
         status: 'draft',
         updatedAt: serverTimestamp(),
@@ -233,7 +235,11 @@ export function VehicleDetailPage() {
       setVehicle((prev) => prev ? { ...prev, status: 'draft' } : prev)
     } catch (e) {
       console.error('Restore from sold error:', e)
-      setPublishError(e instanceof Error ? e.message : '下書きに戻す途中でエラーが発生しました')
+      const detail = e instanceof Error ? e.message : String(e)
+      // 一覧から外すのは何度やっても同じ結果なので、もう一度押せばやり直せる
+      setPublishError(removedFromIndex
+        ? `公開一覧からは外しましたが、管理情報を下書きに更新できませんでした。もう一度「下書きに戻す」を押してください（${detail}）`
+        : `下書きに戻せませんでした（${detail}）`)
     } finally {
       setPublishing(false)
       setPublishPhase('')

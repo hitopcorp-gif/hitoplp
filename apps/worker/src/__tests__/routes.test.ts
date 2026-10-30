@@ -215,6 +215,32 @@ describe('LP配信（/:slug）と一覧（/）', () => {
     expect(html).not.toContain('hi-top.net/stock')
   })
 
+  it('一覧が無い・壊れて読めない時は、下書き扱い（noindex）にせず 503 を返す', async () => {
+    const missing = new FakeR2Bucket()
+    await missing.put('lp/listed-car.html', lpHtml('listed-car'), { httpMetadata: { contentType: 'text/html' } })
+    const res1 = await app.request('/listed-car', {}, makeEnv(missing))
+    expect(res1.status).toBe(503)
+    expect(res1.headers.get('retry-after')).toBe('120')
+
+    for (const broken of ['{not json', '{"slug":"listed-car"}']) {
+      const bucket = new FakeR2Bucket()
+      await bucket.put('lp/listed-car.html', lpHtml('listed-car'), { httpMetadata: { contentType: 'text/html' } })
+      await bucket.put('lp/index.json', broken, { httpMetadata: { contentType: 'application/json' } })
+      const res = await app.request('/listed-car', {}, makeEnv(bucket))
+      expect(res.status).toBe(503)
+      expect(res.headers.get('x-robots-tag')).toBeNull()
+    }
+
+    const throwing = new FakeR2Bucket()
+    await throwing.put('lp/listed-car.html', lpHtml('listed-car'), { httpMetadata: { contentType: 'text/html' } })
+    const realGet = throwing.get.bind(throwing)
+    throwing.get = async (key: string) => {
+      if (key === 'lp/index.json') throw new Error('R2 read failed')
+      return realGet(key)
+    }
+    expect((await app.request('/listed-car', {}, makeEnv(throwing))).status).toBe(503)
+  })
+
   it('一覧の車名・価格・画像の住所はHTMLとして解釈されない', async () => {
     const env = await setup([
       entry('ok-car', { name: '<img src=x onerror=alert(1)>', nameJa: '"><script>x</script>', price: '1&2', heroUrl: 'javascript:alert(1)' }),
