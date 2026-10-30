@@ -59,19 +59,21 @@ async function loadJwks(nowMs: number, fetcher: Fetcher): Promise<JwksCache> {
   return { keys, expiresAt: nowMs + ttl, fetchedAt: nowMs }
 }
 
-function refreshJwks(nowMs: number, fetcher: Fetcher): Promise<JwksCache> {
+type Clock = () => number
+
+function refreshJwks(clock: Clock, fetcher: Fetcher): Promise<JwksCache> {
   if (jwksInflight) return jwksInflight
-  if (jwksFailedAt !== null && nowMs - jwksFailedAt < JWKS_FAILURE_COOLDOWN_MS) {
+  if (jwksFailedAt !== null && clock() - jwksFailedAt < JWKS_FAILURE_COOLDOWN_MS) {
     return Promise.reject(new AuthUnavailableError('JWKS fetch failed recently; waiting before retry'))
   }
   jwksInflight = (async () => {
     try {
-      const loaded = await loadJwks(nowMs, fetcher)
+      const loaded = await loadJwks(clock(), fetcher)
       jwksCache = loaded
       jwksFailedAt = null
       return loaded
     } catch (e) {
-      jwksFailedAt = nowMs
+      jwksFailedAt = clock() // 失敗した時刻から数える（取得に時間がかかっても待ちが短くならない）
       throw e instanceof AuthUnavailableError ? e : new AuthUnavailableError(`JWKS load failed: ${String(e)}`)
     } finally {
       jwksInflight = null
@@ -80,15 +82,16 @@ function refreshJwks(nowMs: number, fetcher: Fetcher): Promise<JwksCache> {
   return jwksInflight
 }
 
-async function getSigningKey(kid: string, nowMs: number, fetcher: Fetcher): Promise<CryptoKey | null> {
+async function getSigningKey(kid: string, clock: Clock, fetcher: Fetcher): Promise<CryptoKey | null> {
+  const nowMs = clock()
   const stale = !jwksCache || jwksCache.expiresAt <= nowMs
   const unknownKid = !!jwksCache && !jwksCache.keys.has(kid) && nowMs - jwksCache.fetchedAt >= JWKS_MIN_REFRESH_MS
   if (stale) {
-    await refreshJwks(nowMs, fetcher)
+    await refreshJwks(clock, fetcher)
   } else if (unknownKid) {
     // 鍵の入れ替わり直後に備えて取り直す。取れなくても手元の鍵で判定を続ける（知らない kid なので無効になる）
     try {
-      await refreshJwks(nowMs, fetcher)
+      await refreshJwks(clock, fetcher)
     } catch (e) {
       if (!(e instanceof AuthUnavailableError)) throw e
     }
@@ -121,9 +124,10 @@ export type VerifiedUser = { uid: string }
 export async function verifyFirebaseIdToken(
   token: string,
   projectId: string,
-  opts: { nowMs?: number; fetcher?: Fetcher } = {},
+  opts: { nowMs?: number; clock?: Clock; fetcher?: Fetcher } = {},
 ): Promise<VerifiedUser | null> {
-  const nowMs = opts.nowMs ?? Date.now()
+  const clock: Clock = opts.clock ?? (() => opts.nowMs ?? Date.now())
+  const nowMs = clock()
   const fetcher = opts.fetcher ?? ((url: string) => fetch(url))
   const parts = token.split('.')
   if (parts.length !== 3) return null
@@ -141,7 +145,7 @@ export async function verifyFirebaseIdToken(
   if (typeof iat !== 'number' || iat > nowSec + CLOCK_SKEW_SEC) return null
   if (typeof authTime !== 'number' || authTime > nowSec + CLOCK_SKEW_SEC) return null
 
-  const key = await getSigningKey(header.kid, nowMs, fetcher)
+  const key = await getSigningKey(header.kid, clock, fetcher)
   if (!key) return null
   let signature: Uint8Array
   try {

@@ -79,6 +79,19 @@ describe('verifyFirebaseIdToken', () => {
     expect(results.every((r) => r?.uid === ALLOWED_UID)).toBe(true)
   })
 
+  it('取得に時間がかかってから失敗しても、待ちは失敗した時刻から10秒', async () => {
+    const signer = await makeSigner()
+    const token = await signer.sign(validClaims(NOW_SEC))
+    let now = NOW_MS
+    const clock = () => now
+    let calls = 0
+    const slowDown = async () => { calls++; now += 12_000; return new Response('down', { status: 503 }) }
+    await expect(verifyFirebaseIdToken(token, PROJECT_ID, { clock, fetcher: slowDown })).rejects.toBeInstanceOf(AuthUnavailableError)
+    now += 1000 // 失敗から1秒後
+    await expect(verifyFirebaseIdToken(token, PROJECT_ID, { clock, fetcher: slowDown })).rejects.toBeInstanceOf(AuthUnavailableError)
+    expect(calls).toBe(1)
+  })
+
   it('公開鍵の取得に失敗した直後10秒は取りに行かずに AuthUnavailableError', async () => {
     const signer = await makeSigner()
     const token = await signer.sign(validClaims(NOW_SEC))

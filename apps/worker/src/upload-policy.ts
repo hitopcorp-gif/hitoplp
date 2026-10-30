@@ -52,20 +52,30 @@ export function normalizeContentType(raw: string | undefined): string {
   return (raw ?? '').split(';')[0].trim().toLowerCase()
 }
 
-// 中身の先頭が申告した種類と合うか（画像キーに HTML 等を入れさせない）。HTML は確かめない。
-export function matchesSignature(contentType: string, bytes: Uint8Array): boolean {
+// 中身の先頭から画像の形式を見分ける。画像でなければ null。
+// 管理画面の WebP 変換はブラウザによって PNG のまま返り、fal.ai の縦長画像は既定で PNG で届くため、
+// 申告と実際の形式が食い違うことがある。食い違いは許し、実際の形式で保存する（画像でない物だけ断る）。
+export function detectImageType(bytes: Uint8Array): string | null {
   const ascii = (from: number, to: number) => String.fromCharCode(...bytes.subarray(from, to))
-  switch (contentType) {
-    case 'image/jpeg': return bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff
-    case 'image/png': return ascii(1, 4) === 'PNG' && bytes[0] === 0x89
-    case 'image/gif': return ascii(0, 6) === 'GIF87a' || ascii(0, 6) === 'GIF89a'
-    case 'image/webp': return ascii(0, 4) === 'RIFF' && ascii(8, 12) === 'WEBP'
-    case 'image/avif':
-    case 'image/heic':
-    case 'image/heif':
-    case 'video/mp4': return ascii(4, 8) === 'ftyp'
-    default: return true
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return 'image/jpeg'
+  if (bytes[0] === 0x89 && ascii(1, 4) === 'PNG') return 'image/png'
+  if (ascii(0, 6) === 'GIF87a' || ascii(0, 6) === 'GIF89a') return 'image/gif'
+  if (ascii(0, 4) === 'RIFF' && ascii(8, 12) === 'WEBP') return 'image/webp'
+  if (ascii(4, 8) === 'ftyp') return ['avif', 'avis'].includes(ascii(8, 12)) ? 'image/avif' : 'image/heic'
+  return null
+}
+
+// 保存する content-type を決める。中身が申告した種類として成り立たなければ null（→ 415）。
+export function storedContentType(rule: UploadRule, declared: string, bytes: Uint8Array): string | null {
+  if (rule.storeAs) return rule.storeAs // LP 本文（HTML）は中身を見ない
+  if (declared === 'video/mp4') return String.fromCharCode(...bytes.subarray(4, 8)) === 'ftyp' ? declared : null
+  if (declared.startsWith('image/')) {
+    const actual = detectImageType(bytes)
+    if (!actual) return null
+    // HEIC / HEIF / AVIF は同じ ftyp 形式なので、申告がそのどれかなら申告どおりにする
+    return actual === 'image/heic' && ['image/heic', 'image/heif', 'image/avif'].includes(declared) ? declared : actual
   }
+  return null
 }
 
 // GET /api/image で返してよいか。保存済み LP の生 HTML（lp/*.html）は出さない。

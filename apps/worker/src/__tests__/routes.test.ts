@@ -120,6 +120,19 @@ describe('書き込み・課金系の窓口は認証なしでは通らない', (
     })
   })
 
+  it('申告と実際の画像形式が食い違っても保存し、実際の形式で記録する（Safari の WebP 変換・fal.ai の PNG）', async () => {
+    const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0])
+    const h = { 'X-Admin-API-Key': ADMIN_KEY }
+    const put = (path: string, type: string) =>
+      app.request(path, { method: 'PUT', body: png, headers: { ...h, 'content-type': type } }, makeEnv(bucket))
+    expect((await put('/api/upload/sns/vertical/some-car.jpg', 'image/jpeg')).status).toBe(200)
+    expect(bucket.objects.get('sns/vertical/some-car.jpg')?.contentType).toBe('image/png')
+    expect((await put('/api/upload/v-1761868800000-abc123_1280.webp', 'image/webp')).status).toBe(200)
+    expect(bucket.objects.get('v-1761868800000-abc123_1280.webp')?.contentType).toBe('image/png')
+    // 動画キーに画像は入れられない
+    expect((await put('/api/upload/sns/reel/some-car.mp4', 'video/mp4')).status).toBe(415)
+  })
+
   it('認証があっても決められたキー・種類以外は書けない', async () => {
     const h = { 'X-Admin-API-Key': ADMIN_KEY }
     const put = (path: string, type: string, body: BodyInit = 'x') =>

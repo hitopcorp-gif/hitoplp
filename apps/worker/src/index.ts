@@ -3,7 +3,7 @@ import { cors } from 'hono/cors'
 import Anthropic from '@anthropic-ai/sdk'
 import { generateLpHtml } from './lp-generator'
 import { requireAdmin, requireStaff } from './auth'
-import { isPublicObjectKey, matchesSignature, normalizeContentType, uploadRuleFor, SLUG_PATTERN } from './upload-policy'
+import { isPublicObjectKey, normalizeContentType, storedContentType, uploadRuleFor, SLUG_PATTERN } from './upload-policy'
 import { LpIndexConflictError, LpIndexUnreadableError, parseLpIndexUpdate, updateLpIndex } from './lp-index'
 import { SITUATION_DEFAULT_COLOR } from './types'
 import type {
@@ -186,12 +186,11 @@ app.put('/api/upload/:key{.+}', requireStaff, async (c) => {
   const body = await c.req.arrayBuffer()
   if (body.byteLength > rule.maxBytes) return c.json({ error: 'too large' }, 413)
   if (body.byteLength === 0 && !rule.allowEmpty) return c.json({ error: 'empty body' }, 400)
-  if (body.byteLength > 0 && !matchesSignature(contentType, new Uint8Array(body, 0, Math.min(16, body.byteLength)))) {
-    return c.json({ error: `body does not look like ${contentType}` }, 415)
-  }
+  const storeAs = storedContentType(rule, contentType, new Uint8Array(body, 0, Math.min(16, body.byteLength)))
+  if (!storeAs) return c.json({ error: `body does not look like ${contentType}` }, 415)
 
   await c.env.IMAGES.put(key, body, {
-    httpMetadata: { contentType: rule.storeAs ?? contentType },
+    httpMetadata: { contentType: storeAs },
   })
 
   return c.json({ key, url: `/api/image/${key}` })
