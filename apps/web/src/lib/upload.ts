@@ -1,22 +1,7 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL
+import { uploadObject } from './api'
 
 async function putToR2(key: string, file: File): Promise<{ key: string; url: string }> {
-  const resp = await fetch(`${API_BASE}/api/upload/${key}`, {
-    method: 'PUT',
-    headers: { 'content-type': file.type },
-    body: file,
-  })
-
-  if (!resp.ok) {
-    const msg = await resp.text().catch(() => '')
-    throw new Error(`アップロード失敗: ${resp.status} ${msg}`)
-  }
-
-  const data = await resp.json() as { key: string; url: string }
-  return {
-    key: data.key,
-    url: `${API_BASE}${data.url}`,
-  }
+  return uploadObject(key, file, file.type)
 }
 
 export async function uploadImageToR2(file: File): Promise<{ key: string; url: string }> {
