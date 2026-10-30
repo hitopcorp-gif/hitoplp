@@ -2,6 +2,9 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import Anthropic from '@anthropic-ai/sdk'
 import { generateLpHtml } from './lp-generator'
+import { requireAdmin, requireStaff } from './auth'
+import { isPublicObjectKey, normalizeContentType, uploadRuleFor, SLUG_PATTERN } from './upload-policy'
+import { LpIndexConflictError, LpIndexUnreadableError, parseLpIndexUpdate, updateLpIndex } from './lp-index'
 import { SITUATION_DEFAULT_COLOR } from './types'
 import type {
   Vehicle,
@@ -18,6 +21,8 @@ type Env = {
   ELEVENLABS_VOICE_ID: string
   ADMIN_API_KEY: string
   ALLOWED_ORIGIN: string
+  FIREBASE_PROJECT_ID: string // wrangler.toml [vars]
+  ALLOWED_UIDS: string        // wrangler.toml [vars]（管理画面に入れる Firebase UID をカンマ区切り）
   IMAGES: R2Bucket
 }
 
@@ -165,21 +170,56 @@ app.get('/:slug{[a-z0-9-]+}', async (c) => {
 })
 
 // ── 画像アップロード（直接R2へ）──
-app.put('/api/upload/:key{.+}', async (c) => {
+//    認証必須。書けるキーの形・種類・大きさは upload-policy.ts の一覧だけ。
+app.put('/api/upload/:key{.+}', requireStaff, async (c) => {
   const key = c.req.param('key')
-  const contentType = c.req.header('content-type') ?? 'image/jpeg'
+  const rule = uploadRuleFor(key)
+  if (!rule) return c.json({ error: 'key not allowed' }, 400)
+
+  const contentType = normalizeContentType(c.req.header('content-type'))
+  if (!rule.contentTypes.includes(contentType)) {
+    return c.json({ error: `content-type not allowed for this key: ${contentType || '(none)'}` }, 415)
+  }
+  const declared = Number(c.req.header('content-length') ?? '0')
+  if (declared > rule.maxBytes) return c.json({ error: 'too large' }, 413)
+
   const body = await c.req.arrayBuffer()
+  if (body.byteLength > rule.maxBytes) return c.json({ error: 'too large' }, 413)
+  if (body.byteLength === 0 && !rule.allowEmpty) return c.json({ error: 'empty body' }, 400)
 
   await c.env.IMAGES.put(key, body, {
-    httpMetadata: { contentType },
+    httpMetadata: { contentType: rule.storeAs ?? contentType },
   })
 
   return c.json({ key, url: `/api/image/${key}` })
 })
 
+// ── LP一覧（lp/index.json）の追加・差し替え・削除 ──
+//    body: { slug, entry: LpIndexEntry | null }（null は一覧から外す）
+app.post('/api/lp-index', requireStaff, async (c) => {
+  let raw: unknown
+  try {
+    raw = await c.req.json()
+  } catch {
+    return c.json({ error: 'invalid JSON body' }, 400)
+  }
+  const update = parseLpIndexUpdate(raw)
+  if (typeof update === 'string') return c.json({ error: update }, 400)
+
+  try {
+    const { count } = await updateLpIndex(c.env.IMAGES, update)
+    return c.json({ ok: true, count })
+  } catch (e) {
+    if (e instanceof LpIndexUnreadableError) return c.json({ error: e.message }, 500)
+    if (e instanceof LpIndexConflictError) return c.json({ error: e.message }, 409)
+    throw e
+  }
+})
+
 // ── 画像取得 ──
 app.get('/api/image/:key{.+}', async (c) => {
   const key = c.req.param('key')
+  if (!isPublicObjectKey(key)) return c.notFound()
   const obj = await c.env.IMAGES.get(key)
   if (!obj) return c.notFound()
 
@@ -207,9 +247,12 @@ app.get('/api/image/:key{.+}', async (c) => {
 })
 
 // ── カーセンサー等URLから車両情報スクレイプ ──
-app.post('/api/scrape', async (c) => {
+app.post('/api/scrape', requireStaff, async (c) => {
   const { url } = await c.req.json<{ url: string }>()
   if (!url) return c.json({ error: 'url required' }, 400)
+  if (typeof url !== 'string' || url.length > 2000 || !/^https?:\/\//i.test(url)) {
+    return c.json({ error: 'url must be an http(s) URL' }, 400)
+  }
 
   let html: string
   try {
@@ -456,9 +499,13 @@ async function fetchWikiContext(carName: string): Promise<string> {
 }
 
 // ── TTS音声生成（ElevenLabs Eleven v3）──
-app.post('/api/tts', async (c) => {
+app.post('/api/tts', requireStaff, async (c) => {
   const { text, slug } = await c.req.json<{ text: string; slug: string }>()
   if (!text || !slug) return c.json({ error: 'text and slug required' }, 400)
+  if (typeof slug !== 'string' || !SLUG_PATTERN.test(slug)) {
+    return c.json({ error: 'slug format: [a-z0-9-]+' }, 400)
+  }
+  if (typeof text !== 'string' || text.length > 5000) return c.json({ error: 'text too long' }, 400)
   if (!c.env.ELEVENLABS_API_KEY || !c.env.ELEVENLABS_VOICE_ID) {
     return c.json({ error: 'ElevenLabs not configured' }, 500)
   }
@@ -502,9 +549,13 @@ app.post('/api/tts', async (c) => {
 })
 
 // ── AI記事生成（既存：Webアプリから利用、prebuilt prompt）──
-app.post('/api/generate', async (c) => {
+app.post('/api/generate', requireStaff, async (c) => {
   const { prompt, carName } = await c.req.json<{ prompt: string; carName?: string }>()
   if (!prompt) return c.json({ error: 'prompt required' }, 400)
+  if (typeof prompt !== 'string' || prompt.length > 30000) return c.json({ error: 'prompt too long' }, 400)
+  if (carName !== undefined && (typeof carName !== 'string' || carName.length > 300)) {
+    return c.json({ error: 'carName too long' }, 400)
+  }
 
   const wikiContext = carName ? await fetchWikiContext(carName) : ''
   const client = new Anthropic({ apiKey: c.env.ANTHROPIC_API_KEY })
@@ -533,21 +584,6 @@ app.post('/api/generate', async (c) => {
     return c.json({ error: 'AI generation failed' }, 500)
   }
 })
-
-// ── Admin API: API キー認証ミドルウェア ──
-//    `X-Admin-API-Key` ヘッダで Cloudflare Workers Secret と照合。
-//    ADMIN_API_KEY が未設定の Worker では常に 503（誤って認証バイパスしないため）。
-async function requireAdmin(c: any, next: () => Promise<void>) {
-  const expected = c.env.ADMIN_API_KEY as string | undefined
-  if (!expected) {
-    return c.json({ error: 'Admin API not configured (ADMIN_API_KEY secret missing)' }, 503)
-  }
-  const provided = c.req.header('X-Admin-API-Key')
-  if (!provided || provided !== expected) {
-    return c.json({ error: 'unauthorized' }, 401)
-  }
-  await next()
-}
 
 // ── ElevenLabs TTS 共通ヘルパー（既存 /api/tts と同等処理）──
 //    narrationText を音声化して R2 に保存し、フルURLを返す。

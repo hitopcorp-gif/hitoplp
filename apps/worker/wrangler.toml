@@ -5,6 +5,11 @@ compatibility_flags = ["nodejs_compat"]
 
 [vars]
 ALLOWED_ORIGIN = "*"
+# 管理画面（LP Studio）の書き込み・課金系の窓口に入れる Firebase ユーザー（src/auth.ts）。
+# Firebase Auth は誰でも新規登録できる設定のため、ログインできても ALLOWED_UIDS に無い UID は通さない。
+# 社員アカウントを足す時は UID をカンマ区切りで追加する（UID は秘密ではない。署名つきトークンが無いと名乗れない）。
+FIREBASE_PROJECT_ID = "hitoplp"
+ALLOWED_UIDS = "ySGRzlAU83MIwImFVNG58Uwy4Ty2"
 
 [[r2_buckets]]
 binding = "IMAGES"

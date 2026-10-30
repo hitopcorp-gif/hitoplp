@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL
+import { API_BASE, uploadObject } from './api'
 
 /**
  * ヒーロー画像を1080×1080正方形にスマートクロップ（Canvas API）
@@ -105,11 +105,5 @@ function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality: number):
 }
 
 async function uploadBlob(key: string, blob: Blob, contentType: string): Promise<void> {
-  const buffer = await blob.arrayBuffer()
-  const res = await fetch(`${API_BASE}/api/upload/${key}`, {
-    method: 'PUT',
-    headers: { 'content-type': contentType },
-    body: buffer,
-  })
-  if (!res.ok) throw new Error(`Upload failed: ${res.status}`)
+  await uploadObject(key, await blob.arrayBuffer(), contentType)
 }

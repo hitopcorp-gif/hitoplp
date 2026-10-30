@@ -9,6 +9,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
 import type { CarBasicInfo } from '@/types'
+import { apiFetch } from '@/lib/api'
 import { useState } from 'react'
 import { Link } from 'lucide-react'
 
@@ -68,8 +69,7 @@ export function Step1BasicInfo({ onNext, defaultValues }: Props) {
     setScraping(true)
     setScrapeError('')
     try {
-      const API_BASE = import.meta.env.VITE_API_BASE_URL
-      const res = await fetch(`${API_BASE}/api/scrape`, {
+      const res = await apiFetch('/api/scrape', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: scrapeUrl.trim() }),

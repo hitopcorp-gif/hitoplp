@@ -1,4 +1,5 @@
 import { fal } from '@fal-ai/client'
+import { uploadObject } from './api'
 
 const FAL_KEY = import.meta.env.VITE_FAL_KEY
 
@@ -49,16 +50,8 @@ export async function generateVerticalImage(
   // R2に保存
   onProgress?.('縦長画像を保存中...')
   const imageBuffer = await fetch(outputImages[0].url).then(r => r.arrayBuffer())
-  const API_BASE = import.meta.env.VITE_API_BASE_URL
-  const key = `sns/vertical/${slug}.jpg`
-
-  await fetch(`${API_BASE}/api/upload/${key}`, {
-    method: 'PUT',
-    headers: { 'content-type': 'image/jpeg' },
-    body: imageBuffer,
-  })
-
-  return `${API_BASE}/api/image/${key}`
+  const { url } = await uploadObject(`sns/vertical/${slug}.jpg`, imageBuffer, 'image/jpeg')
+  return url
 }
 
 /**
@@ -94,14 +87,6 @@ export async function generateReelVideo(
   // R2に保存
   onProgress?.('リール動画を保存中...')
   const videoBuffer = await fetch(videoUrl).then(r => r.arrayBuffer())
-  const API_BASE = import.meta.env.VITE_API_BASE_URL
-  const key = `sns/reel/${slug}.mp4`
-
-  await fetch(`${API_BASE}/api/upload/${key}`, {
-    method: 'PUT',
-    headers: { 'content-type': 'video/mp4' },
-    body: videoBuffer,
-  })
-
-  return `${API_BASE}/api/image/${key}`
+  const { url } = await uploadObject(`sns/reel/${slug}.mp4`, videoBuffer, 'video/mp4')
+  return url
 }

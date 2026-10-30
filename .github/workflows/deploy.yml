@@ -23,6 +23,12 @@ jobs:
       - name: TypeScript check
         run: cd apps/web && npx tsc --noEmit
 
+      - name: Worker TypeScript check
+        run: cd apps/worker && npm run typecheck
+
+      - name: Worker tests (auth / upload policy / lp index)
+        run: cd apps/worker && npm test
+
       - name: ESLint
         run: cd apps/web && npm run lint
 

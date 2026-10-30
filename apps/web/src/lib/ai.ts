@@ -1,5 +1,6 @@
 import type { CarBasicInfo, ColorTemplate, GeneratedContent, Situation } from '@/types'
 import { SITUATION_CONFIG } from '@/types'
+import { apiFetch } from './api'
 
 const SITUATION_PROMPTS: Record<Situation, string> = {
   city: '都市の風景の中での存在感。信号待ち、合流、駐車場。周囲の視線。',
@@ -82,8 +83,7 @@ ${basicInfo.tagline ? `\n一行コピー指定: ${basicInfo.tagline}` : ''}
 }
 `
 
-  const API_BASE = import.meta.env.VITE_API_BASE_URL
-  const resp = await fetch(`${API_BASE}/api/generate`, {
+  const resp = await apiFetch('/api/generate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ prompt: userPrompt, carName: basicInfo.name }),

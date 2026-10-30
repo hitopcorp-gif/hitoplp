@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { doc, getDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import { uploadObject, updateLpIndex } from '@/lib/api'
 import type { Vehicle, GeneratedContent, CarBasicInfo, CarPhoto } from '@/types'
 import { Button } from '@/components/ui/button'
 import { LpPreview } from '@/components/LpPreview'
@@ -19,16 +20,6 @@ import {
   Video, Image, Copy, Download, Play, RefreshCw, Instagram, Film
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-
-interface LpIndexEntry {
-  slug: string
-  name: string
-  nameJa: string
-  year: number
-  price: string
-  heroUrl: string
-  status?: 'published' | 'sold'
-}
 
 export function VehicleDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -92,8 +83,7 @@ export function VehicleDetailPage() {
       // 2. UIを即時更新
       setVehicle((prev) => prev ? { ...prev, status: nextStatus } : prev)
 
-      // 3. R2アップロード（ベストエフォート）
-      const API_BASE = import.meta.env.VITE_API_BASE_URL
+      // 3. R2アップロード（失敗したら画面にエラーを出す）
       if (nextStatus === 'published' && vehicle.generatedContent) {
         const content = editedContent ?? vehicle.generatedContent
         const basicInfo = editedBasicInfo ?? vehicle.basicInfo
@@ -121,12 +111,7 @@ export function VehicleDetailPage() {
         setPublishPhase('LP生成中...')
         const html = generateLpHtml(vehicleForHtml, content, false)
         setPublishPhase('アップロード中...')
-        const uploadRes = await fetch(`${API_BASE}/api/upload/lp/${vehicle.slug}.html`, {
-          method: 'PUT',
-          headers: { 'content-type': 'text/html; charset=utf-8' },
-          body: html,
-        })
-        if (!uploadRes.ok) throw new Error(`R2 upload failed: ${uploadRes.status}`)
+        await uploadObject(`lp/${vehicle.slug}.html`, html, 'text/html; charset=utf-8')
 
         // audioUrlをFirestoreに保存
         if (audioUrl) {
@@ -135,7 +120,7 @@ export function VehicleDetailPage() {
         }
 
         setPublishPhase('インデックス更新中...')
-        await updateLpIndex(API_BASE, vehicle.slug, {
+        await updateLpIndex(vehicle.slug, {
           slug: vehicle.slug,
           name: basicInfo.name,
           nameJa: content.nameJa ?? '',
@@ -145,8 +130,7 @@ export function VehicleDetailPage() {
           status: 'published',
         })
       } else if (nextStatus === 'draft') {
-        const API_BASE2 = import.meta.env.VITE_API_BASE_URL
-        await updateLpIndex(API_BASE2, vehicle.slug, null)
+        await updateLpIndex(vehicle.slug, null)
       }
     } catch (e) {
       console.error('Publish error:', e)
@@ -157,41 +141,17 @@ export function VehicleDetailPage() {
     }
   }
 
-  async function updateLpIndex(apiBase: string, slug: string, entry: LpIndexEntry | null) {
-    // 現在のindex取得
-    let index: LpIndexEntry[] = []
-    try {
-      const res = await fetch(`${apiBase}/api/image/lp/index.json?t=${Date.now()}`, { cache: 'no-store' })
-      if (res.ok) index = await res.json()
-    } catch { /* 初回は空 */ }
-
-    if (entry === null) {
-      index = index.filter(e => e.slug !== slug)
-    } else {
-      index = index.filter(e => e.slug !== slug)
-      index.unshift(entry) // 新しい順に先頭へ
-    }
-
-    await fetch(`${apiBase}/api/upload/lp/index.json`, {
-      method: 'PUT',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(index),
-    })
-  }
-
   async function handleDelete() {
     if (!id || !vehicle) return
     if (!window.confirm('このLPを削除しますか？この操作は取り消せません。')) return
-    // Remove from R2 index + delete HTML
-    const API_BASE = import.meta.env.VITE_API_BASE_URL
+    // Remove from R2 index + delete HTML（空のHTMLで上書き）
     try {
-      await updateLpIndex(API_BASE, vehicle.slug, null)
-      await fetch(`${API_BASE}/api/upload/lp/${vehicle.slug}.html`, {
-        method: 'PUT',
-        headers: { 'content-type': 'text/html' },
-        body: '',
-      })
-    } catch { /* best effort */ }
+      await updateLpIndex(vehicle.slug, null)
+      await uploadObject(`lp/${vehicle.slug}.html`, '', 'text/html')
+    } catch (e) {
+      // 一覧から外せなくても Firestore の削除は進める（従来どおり）。原因は console に残す
+      console.error('LP delete (R2) failed:', e)
+    }
     await deleteDoc(doc(db, 'vehicles', id))
     navigate('/')
   }
@@ -213,7 +173,6 @@ export function VehicleDetailPage() {
       })
       setVehicle((prev) => prev ? { ...prev, status: 'sold' } : prev)
 
-      const API_BASE = import.meta.env.VITE_API_BASE_URL
       const content = editedContent ?? vehicle.generatedContent
       const basicInfo = editedBasicInfo ?? vehicle.basicInfo
       const photos = editedPhotos ?? vehicle.photos
@@ -228,17 +187,13 @@ export function VehicleDetailPage() {
           detailPhotoUrls: detailPhotoUrls ?? vehicle.detailPhotoUrls,
         }
         const html = generateLpHtml(soldVehicle, content, false)
-        await fetch(`${API_BASE}/api/upload/lp/${vehicle.slug}.html`, {
-          method: 'PUT',
-          headers: { 'content-type': 'text/html; charset=utf-8' },
-          body: html,
-        })
+        await uploadObject(`lp/${vehicle.slug}.html`, html, 'text/html; charset=utf-8')
       }
 
       // Update index with sold status
       setPublishPhase('インデックス更新中...')
       const heroUrl = photos.find(p => p.tag === 'hero')?.url ?? photos[0]?.url ?? ''
-      await updateLpIndex(API_BASE, vehicle.slug, {
+      await updateLpIndex(vehicle.slug, {
         slug: vehicle.slug,
         name: basicInfo.name,
         nameJa: editedContent?.nameJa ?? vehicle.generatedContent?.nameJa ?? '',
