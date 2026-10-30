@@ -2,6 +2,8 @@ name = "hitoplp-api"
 main = "src/index.ts"
 compatibility_date = "2025-03-01"
 compatibility_flags = ["nodejs_compat"]
+# CI の API トークンは2つのアカウントを見られるため、反映先を固定する（Pages の deploy-web と同じアカウント）
+account_id = "ae990dbbcd6583fa56e3081ac90c7fdd"
 
 [vars]
 ALLOWED_ORIGIN = "*"
