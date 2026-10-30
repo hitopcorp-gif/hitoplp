@@ -787,7 +787,8 @@ app.post('/api/admin/lp/create', requireAdmin, async (c) => {
     return c.json({
       slug: body.slug,
       vehicleId: body.vehicleId,
-      previewUrl: `${PUBLIC_LP_BASE}${body.slug}`,
+      // 下書きは hi-top.net/stock/ では出さない（在庫一覧に載った車だけ）ので、確認は Worker のアドレスで開く
+      previewUrl: `https://hitoplp-api.hitopcorp.workers.dev/${body.slug}`,
       status: 'draft',
       situation,
       colorTemplate,

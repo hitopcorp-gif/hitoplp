@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Vehicle, GeneratedContent } from '@/types'
 import { generateLpHtml } from '@/lib/lp-generator'
-import { LP_PUBLIC_BASE, LP_PUBLIC_LABEL } from '@/lib/utils'
+import { LP_DRAFT_BASE, LP_DRAFT_LABEL, LP_PUBLIC_BASE, LP_PUBLIC_LABEL } from '@/lib/utils'
 
 interface Props {
   vehicle: Vehicle
@@ -13,6 +13,8 @@ type ViewMode = 'desktop' | 'mobile'
 export function LpPreview({ vehicle, content }: Props) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const [viewMode, setViewMode] = useState<ViewMode>('desktop')
+  // 在庫一覧に載った車（公開中・SOLD）だけ hi-top.net で開ける。下書きは Worker のアドレスで確認する
+  const listed = vehicle.status === 'published' || vehicle.status === 'sold'
 
   useEffect(() => {
     const html = generateLpHtml(vehicle, content, false)
@@ -43,13 +45,13 @@ export function LpPreview({ vehicle, content }: Props) {
           <div className="w-3 h-3 rounded-full bg-white/20" />
         </div>
         <a
-          href={`${LP_PUBLIC_BASE}/${vehicle.slug}`}
+          href={`${listed ? LP_PUBLIC_BASE : LP_DRAFT_BASE}/${vehicle.slug}`}
           target="_blank"
           rel="noopener noreferrer"
           className="flex-1 bg-white/5 rounded px-3 py-1 hover:bg-white/10 transition-colors"
         >
           <span className="text-xs text-white/30">
-            {LP_PUBLIC_LABEL}/{vehicle.slug}
+            {listed ? LP_PUBLIC_LABEL : LP_DRAFT_LABEL}/{vehicle.slug}
           </span>
         </a>
         {/* Open in browser */}
