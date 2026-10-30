@@ -83,6 +83,14 @@ async function readIndex(bucket: R2Bucket): Promise<{ obj: R2ObjectBody | null; 
   }
 }
 
+// 在庫一覧に載っているか（公開中・SOLD）。一覧が無い・壊れて読めない時は LpIndexUnreadableError。
+// 障害を「下書き」と取り違えて公開中の車に noindex を返さないよう、呼び出し側で 503 にする
+export async function isListedLp(bucket: R2Bucket, slug: string): Promise<boolean> {
+  const { obj, current } = await readIndex(bucket)
+  if (!obj) throw new LpIndexUnreadableError('lp/index.json がありません')
+  return current.some((x) => hasSlug(x, slug))
+}
+
 export async function updateLpIndex(
   bucket: R2Bucket,
   update: LpIndexUpdate,

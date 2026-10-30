@@ -4,7 +4,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { generateLpHtml } from './lp-generator'
 import { requireAdmin, requireStaff } from './auth'
 import { isPublicObjectKey, normalizeContentType, storedContentType, uploadRuleFor, SLUG_PATTERN } from './upload-policy'
-import { LpIndexConflictError, LpIndexUnreadableError, parseLpIndexUpdate, updateLpIndex } from './lp-index'
+import { isListedLp, LpIndexConflictError, LpIndexUnreadableError, parseLpIndexUpdate, updateLpIndex } from './lp-index'
 import { SITUATION_DEFAULT_COLOR } from './types'
 import type {
   Vehicle,
@@ -34,6 +34,15 @@ app.use('*', async (c, next) => {
 
 app.get('/health', (c) => c.json({ ok: true }))
 
+// LPの公開アドレス。hi-top.net/stock/ の取り次ぎ（FIWサーバーのPHP）が中身をこの Worker から取って見せる。
+// 保存済みHTMLの workers.dev の住所（canonical・共有リンク・一覧へ戻る）は配信時にこちらへ書き換える。
+// 画像・音声（/api/...）は書き換えない。既存のLPも作り直さずにそろう。
+const PUBLIC_LP_BASE = 'https://hi-top.net/stock/'
+const toPublicLpAddresses = (html: string) =>
+  html
+    .replace(/https:\/\/hitoplp-api\.hitopcorp\.workers\.dev\/(?!api\/)/g, PUBLIC_LP_BASE)
+    .replace(/https%3A%2F%2Fhitoplp-api\.hitopcorp\.workers\.dev%2F(?!api%2F)/gi, encodeURIComponent(PUBLIC_LP_BASE))
+
 // ── LP一覧ギャラリーページ ──
 app.get('/', async (c) => {
   const obj = await c.env.IMAGES.get('lp/index.json')
@@ -47,20 +56,23 @@ app.get('/', async (c) => {
     return 0 // preserve existing order within same status
   })
 
-  const cards = sorted.map(e => {
+  // 一覧の文字はそのままHTMLに入るので、記号を無害化する（hi-top.net/stock/ でも同じものを見せる）
+  const esc = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`)
+  const cards = sorted.filter(e => SLUG_PATTERN.test(e.slug)).map(e => {
     const isSold = e.status === 'sold'
+    const heroUrl = typeof e.heroUrl === 'string' && e.heroUrl.startsWith('https://') ? e.heroUrl : ''
     return `
     <a class="card${isSold ? ' card-sold' : ''}" href="/${e.slug}">
       <div class="card-img">
-        ${e.heroUrl ? `<img src="${e.heroUrl}" alt="${e.name}" loading="lazy">` : '<div class="card-img-placeholder"></div>'}
+        ${heroUrl ? `<img src="${esc(heroUrl)}" alt="${esc(e.name)}" loading="lazy">` : '<div class="card-img-placeholder"></div>'}
         <div class="card-img-grad"></div>
         ${isSold ? '<div class="card-sold-badge sans">SOLD</div>' : ''}
       </div>
       <div class="card-body">
-        <p class="card-year sans">${e.year}</p>
-        <h2 class="card-name en">${e.name}</h2>
-        ${e.nameJa ? `<p class="card-name-ja">${e.nameJa}</p>` : ''}
-        <p class="card-price en">${isSold ? 'SOLD' : e.price}</p>
+        <p class="card-year sans">${esc(e.year)}</p>
+        <h2 class="card-name en">${esc(e.name)}</h2>
+        ${e.nameJa ? `<p class="card-name-ja">${esc(e.nameJa)}</p>` : ''}
+        <p class="card-price en">${isSold ? 'SOLD' : esc(e.price)}</p>
       </div>
     </a>`
   }).join('')
@@ -72,6 +84,7 @@ app.get('/', async (c) => {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HI-TOP JOURNAL — Selection</title>
 <meta name="description" content="HI-TOP CORPORATIONが選び抜いた一台。福岡・北九州。">
+<link rel="canonical" href="${PUBLIC_LP_BASE}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://api.fontshare.com/v2/css?f[]=satoshi@700,400,300&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@400;500&family=Cormorant+Garamond:ital,wght@1,300&family=Noto+Sans+JP:wght@300;400&display=swap" rel="stylesheet">
@@ -166,7 +179,21 @@ app.get('/:slug{[a-z0-9-]+}', async (c) => {
   headers.set('content-type', 'text/html; charset=utf-8')
   headers.set('cache-control', 'no-cache, must-revalidate')
 
-  return new Response(obj.body, { headers })
+  // 住所を hi-top.net/stock/ にするのは在庫一覧に載った車（公開中・SOLD）だけ。
+  // 下書きは hi-top.net では404なので、住所はそのまま返し、検索にも載せない
+  let listed: boolean
+  try {
+    listed = await isListedLp(c.env.IMAGES, slug)
+  } catch (e) {
+    console.error('lp/index.json unreadable while serving LP:', String(e))
+    return c.text('ただいまこのページを表示できません。少し時間をおいてもう一度お試しください。', 503, { 'Retry-After': '120' })
+  }
+  const html = await obj.text()
+  if (!listed) {
+    headers.set('x-robots-tag', 'noindex')
+    return new Response(html, { headers })
+  }
+  return new Response(toPublicLpAddresses(html), { headers })
 })
 
 // ── 画像アップロード（直接R2へ）──
@@ -777,6 +804,7 @@ app.post('/api/admin/lp/create', requireAdmin, async (c) => {
     return c.json({
       slug: body.slug,
       vehicleId: body.vehicleId,
+      // 下書きは hi-top.net/stock/ では出さない（在庫一覧に載った車だけ）ので、確認は Worker のアドレスで開く
       previewUrl: `https://hitoplp-api.hitopcorp.workers.dev/${body.slug}`,
       status: 'draft',
       situation,

@@ -179,3 +179,80 @@ describe('GET /api/image', () => {
     expect((await app.request('/some-car', {}, env)).status).toBe(200)
   })
 })
+
+describe('LP配信（/:slug）と一覧（/）', () => {
+  const W = 'https://hitoplp-api.hitopcorp.workers.dev'
+  const lpHtml = (slug: string) =>
+    `<html><head><link rel="canonical" href="${W}/${slug}"></head><body><img src="${W}/api/image/v-1.webp"><a href="${W}/">一覧へ</a></body></html>`
+  const entry = (slug: string, extra: Record<string, unknown> = {}) =>
+    ({ slug, name: 'Car', nameJa: '', year: 2020, price: '100万円', heroUrl: '', status: 'published', ...extra })
+
+  async function setup(index: unknown[], slugs: string[]) {
+    const bucket = new FakeR2Bucket()
+    for (const s of slugs) await bucket.put(`lp/${s}.html`, lpHtml(s), { httpMetadata: { contentType: 'text/html' } })
+    await bucket.put('lp/index.json', JSON.stringify(index), { httpMetadata: { contentType: 'application/json' } })
+    return makeEnv(bucket)
+  }
+
+  it('一覧に載った車は住所を hi-top.net/stock/ に書き換え、画像の住所はそのまま', async () => {
+    const env = await setup([entry('listed-car')], ['listed-car'])
+    const res = await app.request('/listed-car', {}, env)
+    expect(res.status).toBe(200)
+    expect(res.headers.get('x-robots-tag')).toBeNull()
+    const html = await res.text()
+    expect(html).toContain('href="https://hi-top.net/stock/listed-car"')
+    expect(html).toContain('href="https://hi-top.net/stock/"')
+    expect(html).toContain(`src="${W}/api/image/v-1.webp"`)
+  })
+
+  it('下書き（一覧に無い車）は住所を書き換えず、検索にも載せない', async () => {
+    const env = await setup([entry('listed-car')], ['listed-car', 'draft-car'])
+    const res = await app.request('/draft-car', {}, env)
+    expect(res.status).toBe(200)
+    expect(res.headers.get('x-robots-tag')).toBe('noindex')
+    const html = await res.text()
+    expect(html).toContain(`href="${W}/draft-car"`)
+    expect(html).not.toContain('hi-top.net/stock')
+  })
+
+  it('一覧が無い・壊れて読めない時は、下書き扱い（noindex）にせず 503 を返す', async () => {
+    const missing = new FakeR2Bucket()
+    await missing.put('lp/listed-car.html', lpHtml('listed-car'), { httpMetadata: { contentType: 'text/html' } })
+    const res1 = await app.request('/listed-car', {}, makeEnv(missing))
+    expect(res1.status).toBe(503)
+    expect(res1.headers.get('retry-after')).toBe('120')
+
+    for (const broken of ['{not json', '{"slug":"listed-car"}']) {
+      const bucket = new FakeR2Bucket()
+      await bucket.put('lp/listed-car.html', lpHtml('listed-car'), { httpMetadata: { contentType: 'text/html' } })
+      await bucket.put('lp/index.json', broken, { httpMetadata: { contentType: 'application/json' } })
+      const res = await app.request('/listed-car', {}, makeEnv(bucket))
+      expect(res.status).toBe(503)
+      expect(res.headers.get('x-robots-tag')).toBeNull()
+    }
+
+    const throwing = new FakeR2Bucket()
+    await throwing.put('lp/listed-car.html', lpHtml('listed-car'), { httpMetadata: { contentType: 'text/html' } })
+    const realGet = throwing.get.bind(throwing)
+    throwing.get = async (key: string) => {
+      if (key === 'lp/index.json') throw new Error('R2 read failed')
+      return realGet(key)
+    }
+    expect((await app.request('/listed-car', {}, makeEnv(throwing))).status).toBe(503)
+  })
+
+  it('一覧の車名・価格・画像の住所はHTMLとして解釈されない', async () => {
+    const env = await setup([
+      entry('ok-car', { name: '<img src=x onerror=alert(1)>', nameJa: '"><script>x</script>', price: '1&2', heroUrl: 'javascript:alert(1)' }),
+      entry('bad"slug'),
+    ], [])
+    const html = await (await app.request('/', {}, env)).text()
+    expect(html).not.toContain('<img src=x')
+    expect(html).not.toContain('<script>x')
+    expect(html).not.toContain('javascript:')
+    expect(html).not.toContain('bad"slug')
+    expect(html).toContain('&#60;img src=x onerror=alert(1)&#62;')
+    expect(html).toContain('1&#38;2')
+    expect(html).toContain('href="/ok-car"')
+  })
+})
