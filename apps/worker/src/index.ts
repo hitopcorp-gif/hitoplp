@@ -4,7 +4,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { generateLpHtml } from './lp-generator'
 import { requireAdmin, requireStaff } from './auth'
 import { isPublicObjectKey, normalizeContentType, storedContentType, uploadRuleFor, SLUG_PATTERN } from './upload-policy'
-import { LpIndexConflictError, LpIndexUnreadableError, parseLpIndexUpdate, updateLpIndex } from './lp-index'
+import { isListedLp, LpIndexConflictError, LpIndexUnreadableError, parseLpIndexUpdate, updateLpIndex } from './lp-index'
 import { SITUATION_DEFAULT_COLOR } from './types'
 import type {
   Vehicle,
@@ -56,20 +56,23 @@ app.get('/', async (c) => {
     return 0 // preserve existing order within same status
   })
 
-  const cards = sorted.map(e => {
+  // 一覧の文字はそのままHTMLに入るので、記号を無害化する（hi-top.net/stock/ でも同じものを見せる）
+  const esc = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`)
+  const cards = sorted.filter(e => SLUG_PATTERN.test(e.slug)).map(e => {
     const isSold = e.status === 'sold'
+    const heroUrl = typeof e.heroUrl === 'string' && e.heroUrl.startsWith('https://') ? e.heroUrl : ''
     return `
     <a class="card${isSold ? ' card-sold' : ''}" href="/${e.slug}">
       <div class="card-img">
-        ${e.heroUrl ? `<img src="${e.heroUrl}" alt="${e.name}" loading="lazy">` : '<div class="card-img-placeholder"></div>'}
+        ${heroUrl ? `<img src="${esc(heroUrl)}" alt="${esc(e.name)}" loading="lazy">` : '<div class="card-img-placeholder"></div>'}
         <div class="card-img-grad"></div>
         ${isSold ? '<div class="card-sold-badge sans">SOLD</div>' : ''}
       </div>
       <div class="card-body">
-        <p class="card-year sans">${e.year}</p>
-        <h2 class="card-name en">${e.name}</h2>
-        ${e.nameJa ? `<p class="card-name-ja">${e.nameJa}</p>` : ''}
-        <p class="card-price en">${isSold ? 'SOLD' : e.price}</p>
+        <p class="card-year sans">${esc(e.year)}</p>
+        <h2 class="card-name en">${esc(e.name)}</h2>
+        ${e.nameJa ? `<p class="card-name-ja">${esc(e.nameJa)}</p>` : ''}
+        <p class="card-price en">${isSold ? 'SOLD' : esc(e.price)}</p>
       </div>
     </a>`
   }).join('')
@@ -176,7 +179,14 @@ app.get('/:slug{[a-z0-9-]+}', async (c) => {
   headers.set('content-type', 'text/html; charset=utf-8')
   headers.set('cache-control', 'no-cache, must-revalidate')
 
-  return new Response(toPublicLpAddresses(await obj.text()), { headers })
+  // 住所を hi-top.net/stock/ にするのは在庫一覧に載った車（公開中・SOLD）だけ。
+  // 下書きは hi-top.net では404なので、住所はそのまま返し、検索にも載せない
+  const html = await obj.text()
+  if (!(await isListedLp(c.env.IMAGES, slug))) {
+    headers.set('x-robots-tag', 'noindex')
+    return new Response(html, { headers })
+  }
+  return new Response(toPublicLpAddresses(html), { headers })
 })
 
 // ── 画像アップロード（直接R2へ）──

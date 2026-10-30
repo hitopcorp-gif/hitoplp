@@ -220,11 +220,24 @@ export function VehicleDetailPage() {
 
   async function handleRestoreFromSold() {
     if (!id || !vehicle) return
-    await updateDoc(doc(db, 'vehicles', id), {
-      status: 'draft',
-      updatedAt: serverTimestamp(),
-    })
-    setVehicle((prev) => prev ? { ...prev, status: 'draft' } : prev)
+    // 下書きは公開先に出さないので、一覧（hi-top.net/stock/ もこれを見る）から先に外し、済んでから Firestore を draft にする
+    setPublishing(true)
+    setPublishError('')
+    setPublishPhase('一覧から外しています...')
+    try {
+      await updateLpIndex(vehicle.slug, null)
+      await updateDoc(doc(db, 'vehicles', id), {
+        status: 'draft',
+        updatedAt: serverTimestamp(),
+      })
+      setVehicle((prev) => prev ? { ...prev, status: 'draft' } : prev)
+    } catch (e) {
+      console.error('Restore from sold error:', e)
+      setPublishError(e instanceof Error ? e.message : '下書きに戻す途中でエラーが発生しました')
+    } finally {
+      setPublishing(false)
+      setPublishPhase('')
+    }
   }
 
   async function handleRegenerate() {

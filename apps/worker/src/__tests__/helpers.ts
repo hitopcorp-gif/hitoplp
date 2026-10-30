@@ -16,6 +16,10 @@ export class FakeR2Object {
     return new TextDecoder().decode(this.data)
   }
 
+  async json<T>(): Promise<T> {
+    return JSON.parse(await this.text()) as T
+  }
+
   writeHttpMetadata(headers: Headers): void {
     if (this.contentType) headers.set('content-type', this.contentType)
   }

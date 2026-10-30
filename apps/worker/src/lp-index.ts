@@ -83,6 +83,16 @@ async function readIndex(bucket: R2Bucket): Promise<{ obj: R2ObjectBody | null; 
   }
 }
 
+// 在庫一覧に載っているか（公開中・SOLD）。一覧が無い・読めない時は載っていない扱い
+export async function isListedLp(bucket: R2Bucket, slug: string): Promise<boolean> {
+  try {
+    const { current } = await readIndex(bucket)
+    return current.some((x) => hasSlug(x, slug))
+  } catch {
+    return false
+  }
+}
+
 export async function updateLpIndex(
   bucket: R2Bucket,
   update: LpIndexUpdate,
